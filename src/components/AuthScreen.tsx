@@ -43,7 +43,7 @@ export const AuthScreen: React.FC = () => {
                 provider: 'github',
                 options: {
                     scopes: 'repo read:user', // Request repo access for the app functionality
-                    redirectTo: window.location.origin
+                    redirectTo: window.location.href.split('#')[0].split('?')[0]
                 }
             });
             if (error) throw error;
@@ -72,14 +72,14 @@ export const AuthScreen: React.FC = () => {
                     email,
                     password,
                     options: {
-                        emailRedirectTo: window.location.origin
+                        emailRedirectTo: window.location.href.split('#')[0].split('?')[0]
                     }
                 });
                 if (error) throw error;
                 setMessage('Check your email for the confirmation link!');
             } else if (mode === 'forgot_password') {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/reset-password`,
+                    redirectTo: window.location.href.split('#')[0].split('?')[0],
                 });
                 if (error) throw error;
                 setMessage('Check your email for the password reset link!');
