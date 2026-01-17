@@ -47,17 +47,34 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
         );
     };
 
+    // Stable color generator for non-language tags
+    // Stable color generator for non-language tags
+    const getTopicColor = (name: string) => {
+        const brandColor = getLanguageColor(name);
+        // '#8b949e' is the default grey returned by getLanguageColor for unknown languages
+        if (brandColor !== '#8b949e') return brandColor;
+
+        // Fallback: Stable HSL color based on name hash
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Use a more vibrant range for interest areas
+        return `hsl(${Math.abs(hash) % 360}, 65%, 60%)`;
+    };
+
     // Custom Y-axis tick renderer with Devicon icons for Hot Topics
     const renderYAxisTickWithIcon = (props: any) => {
         const { x, y, payload } = props;
+        const color = getTopicColor(payload.value);
         return (
             <g transform={`translate(${x - 90},${y - 12})`}>
                 <foreignObject x={0} y={0} width={90} height={24}>
                     <div className="flex items-center justify-end gap-2 pr-2 h-full">
-                        <span className="text-[9px] font-black uppercase tracking-tight opacity-70 truncate max-w-[60px]">
+                        <span className="text-[9px] font-black uppercase tracking-tight opacity-70 truncate max-w-[60px]" style={{ color }}>
                             {payload.value}
                         </span>
-                        <LanguageIcon name={payload.value} size={14} color="#ec4899" />
+                        <LanguageIcon name={payload.value} size={14} color={color} />
                     </div>
                 </foreignObject>
             </g>
@@ -76,6 +93,22 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
         textTransform: 'uppercase' as const,
         fontSize: '10px',
         letterSpacing: '0.1em'
+    };
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            const color = payload[0].payload.fill || payload[0].color || '#6366f1';
+            return (
+                <div
+                    style={{ ...tooltipStyle, borderColor: color }}
+                    className="flex flex-col gap-1"
+                >
+                    <p className="font-black" style={{ color }}>{label}</p>
+                    <p className="opacity-60">Value: {payload[0].value}</p>
+                </div>
+            );
+        }
+        return null;
     };
 
     return (
@@ -102,7 +135,7 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                     <Cell key={`cell-${index}`} fill={getLanguageColor(entry.name)} />
                                 ))}
                             </Pie>
-                            <RechartsTooltip contentStyle={tooltipStyle} />
+                            <RechartsTooltip content={<CustomTooltip />} />
                             <Legend content={renderLegend} />
                         </PieChart>
                     </ResponsiveContainer>
@@ -179,10 +212,10 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                 axisLine={false}
                                 tick={{ fontWeight: 900, opacity: 0.4 }}
                             />
-                            <RechartsTooltip cursor={{ fill: 'rgba(59, 130, 246, 0.05)', radius: 10 }} contentStyle={tooltipStyle} />
+                            <RechartsTooltip cursor={{ fill: 'rgba(59, 130, 246, 0.05)', radius: 10 }} content={<CustomTooltip />} />
                             <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={32} isAnimationActive={!isSyncing}>
                                 {languageStats.slice(0, 8).map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={getLanguageColor(entry.name)} />
+                                    <Cell key={`cell-${index}`} fill={getTopicColor(entry.name)} />
                                 ))}
                             </Bar>
                         </BarChart>
@@ -212,14 +245,17 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                 width={100}
                                 tick={renderYAxisTickWithIcon}
                             />
-                            <RechartsTooltip cursor={{ fill: 'rgba(236, 72, 153, 0.05)', radius: 10 }} contentStyle={tooltipStyle} />
+                            <RechartsTooltip cursor={{ fill: 'rgba(236, 72, 153, 0.05)', radius: 10 }} content={<CustomTooltip />} />
                             <Bar
                                 dataKey="value"
-                                fill="#ec4899"
                                 radius={[0, 6, 6, 0]}
                                 barSize={20}
                                 isAnimationActive={!isSyncing}
-                            />
+                            >
+                                {hotTopics.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={getTopicColor(entry.name)} />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
