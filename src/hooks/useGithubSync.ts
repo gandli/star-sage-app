@@ -16,7 +16,7 @@ export function useGithubSync(config: Config) {
         setSyncProgress({ current: 0, total: 0 });
         setError(null);
         try {
-            const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
+            const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3.star+json' };
             let username = targetConfig.value;
 
             if (targetConfig.type === 'token') {
@@ -65,16 +65,17 @@ export function useGithubSync(config: Config) {
                     hasMore = false;
                 } else {
                     const minifiedData = data.map((r: any) => ({
-                        id: r.id,
-                        name: r.name,
-                        full_name: r.full_name,
-                        html_url: r.html_url,
-                        stargazers_count: r.stargazers_count,
-                        updated_at: r.pushed_at || r.updated_at, // 采用更准确的 pushed_at 代表活跃更新, fallback 到 updated_at
-                        topics: r.topics || [],
-                        language: r.language,
-                        description: r.description,
-                        owner: { avatar_url: r.owner.avatar_url, login: r.owner.login }
+                        id: r.repo.id,
+                        name: r.repo.name,
+                        full_name: r.repo.full_name,
+                        html_url: r.repo.html_url,
+                        stargazers_count: r.repo.stargazers_count,
+                        updated_at: r.repo.pushed_at || r.repo.updated_at,
+                        topics: r.repo.topics || [],
+                        language: r.repo.language,
+                        description: r.repo.description,
+                        starred_at: r.starred_at,
+                        owner: { avatar_url: r.repo.owner.avatar_url, login: r.repo.owner.login }
                     }));
 
                     allFetchedRepos = [...allFetchedRepos, ...minifiedData];

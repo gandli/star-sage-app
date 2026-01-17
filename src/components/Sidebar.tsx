@@ -89,10 +89,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div
                     className={cn(navItemClass, activeView === 'overview' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                     onClick={() => setActiveView('overview')}
-                    title={collapsed ? '概览统计' : ''}
+                    title={collapsed ? '数据概览' : ''}
                 >
                     <LayoutDashboard size={18} className={activeView === 'overview' ? "text-blue-500" : "opacity-70"} />
-                    {!collapsed && <span>概览统计</span>}
+                    {!collapsed && <span>数据概览</span>}
                 </div>
                 <div
                     className={cn(navItemClass, activeView === 'list' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}

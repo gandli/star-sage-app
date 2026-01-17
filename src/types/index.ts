@@ -13,6 +13,7 @@ export interface Repo {
     login?: string;
     avatar_url: string;
   };
+  starred_at?: string;
 }
 
 export interface Config {

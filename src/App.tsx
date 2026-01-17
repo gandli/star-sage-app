@@ -153,6 +153,33 @@ const App: React.FC = () => {
     return [...top, { name: 'Others', value: othersValue }];
   }, [languageStats]);
 
+  const hotTopics = useMemo(() => {
+    const topicCounts: Record<string, number> = {};
+    repos.forEach(repo => {
+      repo.topics?.forEach(topic => {
+        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+      });
+    });
+    return Object.entries(topicCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [repos]);
+
+  const starTrends = useMemo(() => {
+    const trends: Record<string, number> = {};
+    repos.forEach(repo => {
+      if (repo.starred_at) {
+        const date = new Date(repo.starred_at);
+        const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        trends[month] = (trends[month] || 0) + 1;
+      }
+    });
+    return Object.entries(trends)
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }, [repos]);
+
   const saveConfig = () => {
     const configToSave = {
       ...tempConfig,
@@ -226,7 +253,13 @@ const App: React.FC = () => {
                     <Loader2 className="animate-spin mr-2" /> 载入分析图表...
                   </div>
                 }>
-                  <Charts pieData={pieData} languageStats={languageStats} isSyncing={!!syncProgress} />
+                  <Charts
+                    pieData={pieData}
+                    languageStats={languageStats}
+                    starTrends={starTrends}
+                    hotTopics={hotTopics}
+                    isSyncing={!!syncProgress}
+                  />
                 </Suspense>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
