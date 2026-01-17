@@ -1,6 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, List as ListIcon, Moon, Sun, ShieldCheck, User, RefreshCw, Search, X } from 'lucide-react';
-import { cn } from '../utils/theme';
+
 import type { Config } from '../types';
 
 interface HeaderProps {
@@ -11,7 +11,7 @@ interface HeaderProps {
     config: Config;
     loading: boolean;
     onRefresh: () => void;
-    onRefresh: () => void;
+
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onSearch?: () => void;
@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({
     setSearchQuery,
     onSearch
 }) => {
-    const glassClass = "bg-[var(--card-bg)] backdrop-blur-xl border border-[var(--glass-border)] rounded-2xl shadow-sm transition-all duration-300";
+
 
     return (
         <header

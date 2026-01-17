@@ -1,5 +1,5 @@
 import React from 'react';
-import { Code2, Terminal, Coffee, Database, FileCode, Cpu, Box, Globe, FileJson, Layers } from 'lucide-react';
+import { Code2, Database, Box, Globe, FileJson, Layers } from 'lucide-react';
 import { getLanguageColor } from '../utils/theme';
 
 interface LanguageIconProps {

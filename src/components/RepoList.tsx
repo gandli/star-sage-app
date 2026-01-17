@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, ExternalLink, ChevronLeft, ChevronRight, Loader2, Languages } from 'lucide-react';
-import { cn, getLanguageColor } from '../utils/theme';
+import { cn } from '../utils/theme';
 import { db } from '../utils/db';
 import { LanguageIcon } from './LanguageIcon';
 import type { Repo } from '../types';

@@ -192,6 +192,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                 >
                     <Settings size={14} className="opacity-70" /> {!collapsed && 'Settings'}
                 </button>
+                <button
+                    onClick={onSignOut}
+                    className={`w-full h-11 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest bg-red-500/[0.05] border border-red-500/10 text-red-500 rounded-xl hover:bg-red-500/10 active:scale-[0.98] transition-all duration-300 ${collapsed ? 'justify-center px-0' : 'justify-center'}`}
+                    title={collapsed ? 'Sign Out' : ''}
+                >
+                    <LogOut size={14} /> {!collapsed && 'Sign Out'}
+                </button>
             </div>
         </aside>
     );

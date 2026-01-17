@@ -13,7 +13,7 @@ import type { Config } from './types';
 // Lazy load heavy charts
 const Charts = lazy(() => import('./components/Charts'));
 
-const ITEMS_PER_PAGE = 30;
+// const ITEMS_PER_PAGE = 30;
 
 const App: React.FC = () => {
   // --- Auth & Config State ---
@@ -51,7 +51,7 @@ const App: React.FC = () => {
 
 
   // --- States ---
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('gh_stars_theme') as 'light' | 'dark') || 'light';
   });
@@ -176,7 +176,7 @@ const App: React.FC = () => {
     return filteredRepos.filter(repo =>
       repo.name.toLowerCase().includes(query) ||
       repo.description?.toLowerCase().includes(query) ||
-      repo.owner.login.toLowerCase().includes(query)
+      (repo.owner?.login || '').toLowerCase().includes(query)
     );
   }, [filteredRepos, searchQuery]);
 
