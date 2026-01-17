@@ -2,7 +2,7 @@
 
 > **StarSage** 是一款专为 GitHub 极客打造的高性能、高美学星标仓库管理面板。
 
-![StarSage 演示](file:///Users/user/.gemini/antigravity/brain/cc0eeee8-56cc-4d2c-a217-d3374e4e56c1/rename_verify.png)
+![StarSage 演示](src/assets/screencapture-localhost-5173-2026-01-17-17_03_04.png)
 
 ## 💎 核心愿景
 
