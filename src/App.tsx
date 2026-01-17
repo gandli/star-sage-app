@@ -1,0 +1,347 @@
+import React, { useState, useEffect, useMemo, Suspense, lazy, useRef, useTransition } from 'react';
+import { Star, Code2, History, AlertCircle, X, Loader2, ArrowUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import RepoList from './components/RepoList';
+import SettingsModal from './components/SettingsModal';
+import { useGithubSync } from './hooks/useGithubSync';
+import type { Config } from './types';
+
+// Lazy load heavy charts
+const Charts = lazy(() => import('./components/Charts'));
+
+const ITEMS_PER_PAGE = 30;
+
+const App: React.FC = () => {
+  // --- States ---
+  const [isPending, startTransition] = useTransition();
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('gh_stars_theme') as 'light' | 'dark') || 'light';
+  });
+
+  const [config, setConfig] = useState<Config>(() => {
+    const saved = localStorage.getItem('gh_stars_config');
+    return saved ? JSON.parse(saved) : { type: 'username', value: '' };
+  });
+
+  const [showSettings, setShowSettings] = useState(!config.value);
+  const [tempConfig, setTempConfig] = useState<Config>(config);
+  const [activeView, setActiveView] = useState<'overview' | 'list'>(() => {
+    return (localStorage.getItem('gh_stars_view') as 'overview' | 'list') || 'overview';
+  });
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(() => {
+    return localStorage.getItem('gh_stars_language');
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return localStorage.getItem('gh_stars_search') || '';
+  });
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    const saved = localStorage.getItem('gh_stars_items_per_page');
+    return saved ? parseInt(saved, 10) : 30;
+  });
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const { repos, loading, syncProgress, error, setError, fetchAllStars } = useGithubSync(config);
+
+  // --- Effects ---
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('gh_stars_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('gh_stars_view', activeView);
+  }, [activeView]);
+
+  useEffect(() => {
+    if (selectedLanguage) {
+      localStorage.setItem('gh_stars_language', selectedLanguage);
+    } else {
+      localStorage.removeItem('gh_stars_language');
+    }
+  }, [selectedLanguage]);
+
+  useEffect(() => {
+    localStorage.setItem('gh_stars_search', searchQuery);
+  }, [searchQuery]);
+
+  // Handle outside config changes
+  useEffect(() => {
+    const saved = localStorage.getItem('gh_stars_config');
+    const parsed = saved ? JSON.parse(saved) : null;
+    if (config.value && parsed && (config.value !== parsed.value || config.type !== parsed.type)) {
+      fetchAllStars(config);
+    }
+  }, [config, fetchAllStars]);
+
+  // Reload config when sync completes to get resolvedUsername
+  useEffect(() => {
+    if (!loading && !syncProgress) {
+      const saved = localStorage.getItem('gh_stars_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.resolvedUsername && parsed.resolvedUsername !== config.resolvedUsername) {
+          setConfig(parsed);
+        }
+      }
+    }
+  }, [loading, syncProgress]);
+
+  // Scroll to top button visibility
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setShowScrollTop(container.scrollTop > 300);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    scrollContainerRef.current?.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // --- Memoized Data ---
+  const languageStats = useMemo(() => {
+    const stats: Record<string, number> = {};
+    repos.forEach(repo => {
+      const lang = repo.language || 'Unknown';
+      stats[lang] = (stats[lang] || 0) + 1;
+    });
+    return Object.entries(stats)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [repos]);
+
+  const filteredRepos = useMemo(() => {
+    if (!selectedLanguage) return repos;
+    return repos.filter(r => (r.language || 'Unknown') === selectedLanguage);
+  }, [repos, selectedLanguage]);
+
+  // Search filtering
+  const searchedRepos = useMemo(() => {
+    if (!searchQuery.trim()) return filteredRepos;
+    const query = searchQuery.toLowerCase();
+    return filteredRepos.filter(repo =>
+      repo.name.toLowerCase().includes(query) ||
+      repo.description?.toLowerCase().includes(query) ||
+      repo.owner.login.toLowerCase().includes(query)
+    );
+  }, [filteredRepos, searchQuery]);
+
+  const paginatedRepos = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return searchedRepos.slice(start, start + itemsPerPage);
+  }, [searchedRepos, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(searchedRepos.length / itemsPerPage);
+
+  const pieData = useMemo(() => {
+    if (languageStats.length <= 8) return languageStats;
+    const top = languageStats.slice(0, 7);
+    const othersValue = languageStats.slice(7).reduce((acc, curr) => acc + curr.value, 0);
+    return [...top, { name: 'Others', value: othersValue }];
+  }, [languageStats]);
+
+  const saveConfig = () => {
+    const configToSave = {
+      ...tempConfig,
+      ...(tempConfig.type === 'token' && config.resolvedUsername ? { resolvedUsername: config.resolvedUsername } : {})
+    };
+    localStorage.setItem('gh_stars_config', JSON.stringify(configToSave));
+    setConfig(configToSave);
+    setShowSettings(false);
+    fetchAllStars(tempConfig);
+  };
+
+  return (
+    <div className="h-screen w-full flex overflow-hidden selection:bg-blue-500/30 bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors duration-500">
+      {/* Ambient background decorations */}
+      <div className="ambient-light top-0 left-1/4 w-[500px] h-[500px] bg-blue-500 rounded-full" />
+      <div className="ambient-light bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500 rounded-full" />
+      <div className="ambient-light top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500 opacity-10" />
+
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        repos={repos}
+        languageStats={languageStats.slice(0, 15)}
+        selectedLanguage={selectedLanguage}
+        setSelectedLanguage={setSelectedLanguage}
+        setCurrentPage={setCurrentPage}
+        syncProgress={syncProgress}
+        onOpenSettings={() => { setTempConfig(config); setShowSettings(true); }}
+      />
+
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <Header
+          activeView={activeView}
+          selectedLanguage={selectedLanguage}
+          theme={theme}
+          setTheme={(t) => startTransition(() => setTheme(t))}
+          config={config}
+          loading={loading}
+          onRefresh={() => fetchAllStars(config)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onSearch={() => {
+            if (activeView !== 'list') {
+              setActiveView('list');
+            }
+          }}
+        />
+
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <AnimatePresence mode="wait">
+            {activeView === 'overview' ? (
+              <motion.div
+                key="overview"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="max-w-6xl mx-auto space-y-8"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-5xl font-black tracking-tighter uppercase text-balance">
+                    Stats <span className="text-blue-500">Overview</span>
+                  </h2>
+                  <div className="px-5 py-2.5 flex items-center gap-3 premium-glass rounded-2xl shadow-xl shadow-black/5">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                    <span className="font-black text-xs uppercase tracking-widest tabular-nums">{repos.length} Stars</span>
+                  </div>
+                </div>
+
+                <Suspense fallback={
+                  <div className="h-[450px] flex items-center justify-center opacity-50">
+                    <Loader2 className="animate-spin mr-2" /> 载入分析图表...
+                  </div>
+                }>
+                  <Charts pieData={pieData} languageStats={languageStats} isSyncing={!!syncProgress} />
+                </Suspense>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <StatCard icon={<Star size={32} className="text-yellow-500" />} value={repos.length} label="Starred Repos" />
+                  <StatCard icon={<Code2 size={32} className="text-purple-500" />} value={languageStats.length} label="Different Languages" />
+                  <StatCard icon={<History size={32} className="text-blue-500" />} value={languageStats[0]?.name || '-'} label="Dominant Skill" />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <RepoList
+                  repos={paginatedRepos}
+                  selectedLanguage={selectedLanguage}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  setCurrentPage={setCurrentPage}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
+
+      <SettingsModal
+        show={showSettings}
+        onClose={() => setShowSettings(false)}
+        tempConfig={tempConfig}
+        setTempConfig={setTempConfig}
+        onSave={saveConfig}
+        config={config}
+        itemsPerPage={itemsPerPage}
+        setItemsPerPage={setItemsPerPage}
+      />
+
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-12 left-1/2 -translate-x-1/2 max-w-lg w-full px-6 z-[110]"
+        >
+          <div className="bg-white dark:bg-zinc-900 border border-red-500/20 shadow-2xl rounded-[2rem] p-6 flex flex-col gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-red-500/10 rounded-2xl text-red-500 flex-shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="font-black uppercase tracking-tighter text-lg">
+                  {error === 'TOKEN_INVALID' ? 'Authentication Failed' :
+                    error === 'NO_PUBLIC_DATA' ? 'No Public Stars found' :
+                      error === 'NO_DATA' ? 'Empty Repository List' : 'Sync Interrupted'}
+                </h4>
+                <p className="text-sm opacity-60 leading-relaxed">
+                  {error === 'TOKEN_INVALID' ? 'Your Personal Access Token is invalid or has expired. Please check your token permissions.' :
+                    error === 'NO_PUBLIC_DATA' ? 'No public starred repositories found for this user. If your stars are private, please use an API Token instead.' :
+                      error === 'NO_DATA' ? 'We couldn\'t find any starred repositories associated with this account. Try another source?' :
+                        'The GitHub API connection was lost. Please check your network or try again later.'}
+                </p>
+              </div>
+              <button onClick={() => setError(null)} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setError(null); setShowSettings(true); }}
+                className="flex-1 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] py-4 rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-red-500/20"
+              >
+                Configure {error === 'NO_PUBLIC_DATA' ? 'Token' : 'Source'}
+              </button>
+              {error === 'NO_PUBLIC_DATA' && (
+                <a
+                  href="https://github.com/settings/tokens"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 bg-black/5 dark:bg-white/5 font-black uppercase tracking-widest text-[10px] py-4 rounded-xl text-center hover:bg-black/10 dark:hover:bg-white/10 transition-all"
+                >
+                  Go to GitHub
+                </a>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Scroll to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.15 }}
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 z-50 size-12 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl active:scale-95 transition-all duration-150 flex items-center justify-center"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp size={20} strokeWidth={2.5} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const StatCard: React.FC<{ icon: React.ReactNode, value: string | number, label: string }> = ({ icon, value, label }) => (
+  <div className="premium-glass p-8 rounded-[2rem] text-center group hover:scale-[1.05] transition-all duration-500">
+    <div className="mx-auto mb-6 flex justify-center transform group-hover:scale-110 transition-transform duration-500">{icon}</div>
+    <div className="text-5xl font-black tracking-tighter tabular-nums mb-2 truncate px-2">{value}</div>
+    <div className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30 group-hover:opacity-60 transition-opacity">{label}</div>
+  </div>
+);
+
+export default App;
