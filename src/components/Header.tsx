@@ -2,6 +2,7 @@ import React from 'react';
 import { LayoutDashboard, List as ListIcon, Moon, Sun, ShieldCheck, User, RefreshCw, Search, X } from 'lucide-react';
 
 import type { Config } from '../types';
+import type { Profile } from '../hooks/useProfile';
 
 interface HeaderProps {
     activeView: 'overview' | 'list';
@@ -15,6 +16,7 @@ interface HeaderProps {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     onSearch?: () => void;
+    profile: Profile | null;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -27,7 +29,8 @@ const Header: React.FC<HeaderProps> = ({
     onRefresh,
     searchQuery,
     setSearchQuery,
-    onSearch
+    onSearch,
+    profile
 }) => {
 
 
@@ -71,8 +74,14 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group transition-all">
-                    {config.type === 'token' ? <ShieldCheck size={14} className="text-blue-500" /> : <User size={14} className="text-blue-500 opacity-70" />}
-                    <span className="text-[10px] font-black uppercase tracking-widest max-w-[120px] truncate opacity-60 group-hover:opacity-100 transition-opacity">{config.resolvedUsername || config.value || 'None'}</span>
+                    {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt="Profile" className="w-5 h-5 rounded-full border border-white/20" />
+                    ) : (
+                        config.type === 'token' ? <ShieldCheck size={14} className="text-blue-500" /> : <User size={14} className="text-blue-500 opacity-70" />
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-widest max-w-[120px] truncate opacity-60 group-hover:opacity-100 transition-opacity">
+                        {profile?.full_name || profile?.username || config.resolvedUsername || config.value || 'Analytic Mode'}
+                    </span>
                 </div>
 
                 <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-1" />

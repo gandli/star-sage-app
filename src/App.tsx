@@ -7,6 +7,7 @@ import RepoList from './components/RepoList';
 import SettingsModal from './components/SettingsModal';
 import { useGithubSync } from './hooks/useGithubSync';
 import { useAuth } from './hooks/useAuth';
+import { useProfile } from './hooks/useProfile';
 import { AuthScreen } from './components/AuthScreen';
 import type { Config } from './types';
 
@@ -17,7 +18,8 @@ const Charts = lazy(() => import('./components/Charts'));
 
 const App: React.FC = () => {
   // --- Auth & Config State ---
-  const { session, loading: authLoading, signOut } = useAuth();
+  const { session, user, loading: authLoading, signOut } = useAuth();
+  const { profile, updateCloudConfig } = useProfile(user);
 
   // Initialize config - prioritize local storage, but will override if github token is present
   const [sessionMethodsCheck, setSessionMethodsCheck] = useState(false);
@@ -48,6 +50,33 @@ const App: React.FC = () => {
       setSessionMethodsCheck(true);
     }
   }, [session]);
+
+  // Sync Cloud config to Local
+  useEffect(() => {
+    if (profile?.config_type && profile?.config_value) {
+      const cloudConfig: Config = {
+        type: profile.config_type as 'username' | 'token',
+        value: profile.config_value,
+        resolvedUsername: profile.resolved_username || undefined
+      };
+
+      // If we don't have a local config or the cloud one is different (and we are not using provider_token which is dynamic)
+      if (!session?.provider_token && JSON.stringify(config) !== JSON.stringify(cloudConfig)) {
+        setConfig(cloudConfig);
+        localStorage.setItem('gh_stars_config', JSON.stringify(cloudConfig));
+      }
+    }
+  }, [profile, session, config]);
+
+  // Sync Local config to Cloud (Debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user && config.value && (config.type !== 'token' || config.value !== session?.provider_token)) {
+        updateCloudConfig(config);
+      }
+    }, 5000); // 5s debounce for cloud sync
+    return () => clearTimeout(timer);
+  }, [config, user, session, updateCloudConfig]);
 
 
   // --- States ---
@@ -120,7 +149,7 @@ const App: React.FC = () => {
       // If logged in but no config, open settings
       setShowSettings(true);
     }
-  }, [config /* fetchAllStars omitted to prevent loops, typical pattern */]);
+  }, [config, session, showSettings, fetchAllStars]);
 
   // Reload config when sync completes to get resolvedUsername
   useEffect(() => {
@@ -130,7 +159,7 @@ const App: React.FC = () => {
         // useGithubSync handles simple fetching, but maybe we explicitly verify here
       }
     }
-  }, [loading, syncProgress]);
+  }, [loading, syncProgress, config]);
 
   // Scroll to top button visibility
   useEffect(() => {
@@ -262,8 +291,8 @@ const App: React.FC = () => {
         setCurrentPage={setCurrentPage}
         syncProgress={syncProgress}
         onOpenSettings={() => { setTempConfig(config); setShowSettings(true); }}
-        // @ts-ignore - Prop might not exist yet, will add in next step
         onSignOut={signOut}
+        profile={profile}
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -282,6 +311,7 @@ const App: React.FC = () => {
               setActiveView('list');
             }
           }}
+          profile={profile}
         />
 
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 custom-scrollbar">

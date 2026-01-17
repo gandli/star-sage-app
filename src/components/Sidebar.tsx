@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { cn, getLanguageColor } from '../utils/theme';
 import { LanguageIcon } from './LanguageIcon';
 import type { Repo, SyncProgress } from '../types';
+import type { Profile } from '../hooks/useProfile';
 import logo from '../assets/icon.png';
 
 interface SidebarProps {
@@ -17,6 +18,7 @@ interface SidebarProps {
     syncProgress: SyncProgress | null;
     onOpenSettings: () => void;
     onSignOut: () => void;
+    profile: Profile | null;
 }
 
 
@@ -31,7 +33,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     setCurrentPage,
     syncProgress,
     onOpenSettings,
-    onSignOut
+    onSignOut,
+    profile
 }) => {
     const [collapsed, setCollapsed] = useState(() => {
         return localStorage.getItem('gh_stars_sidebar_collapsed') === 'true';
@@ -46,14 +49,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     return (
         <aside
-            className={`border-r border-[var(--border-main)] flex flex-col flex-shrink-0 z-20 backdrop-blur-2xl transition-all duration-500 relative bg-[var(--bg-sidebar)] ${collapsed ? 'w-20' : 'w-68'}`}
+            className={`border - r border - [var(--border - main)] flex flex - col flex - shrink - 0 z - 20 backdrop - blur - 2xl transition - all duration - 500 relative bg - [var(--bg - sidebar)] ${collapsed ? 'w-20' : 'w-68'} `}
         >
-            <div className={`flex items-center transition-all duration-300 ${collapsed ? 'justify-center h-16 flex-col gap-3 pt-6' : 'justify-between h-20 px-6'}`}>
-                <div className={`flex items-center gap-3 overflow-hidden ${collapsed ? 'justify-center w-full' : ''}`}>
+            <div className={`flex items - center transition - all duration - 300 ${collapsed ? 'justify-center h-16 flex-col gap-3 pt-6' : 'justify-between h-20 px-6'} `}>
+                <div className={`flex items - center gap - 3 overflow - hidden ${collapsed ? 'justify-center w-full' : ''} `}>
                     <img
                         src={logo}
                         alt="Logo"
-                        className={`transition-all duration-300 ${collapsed ? 'w-8 h-8' : 'w-8 h-8'}`}
+                        className={`transition - all duration - 300 ${collapsed ? 'w-8 h-8' : 'w-8 h-8'} `}
                     />
                     {!collapsed && (
                         <h2 className="text-xl font-black tracking-tight text-blue-500 whitespace-nowrap" style={{ fontFamily: 'Fira Code, monospace' }}>
@@ -138,11 +141,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 ))}
             </nav>
 
-            <div className={`p-4 mt-auto border-t border-[var(--border-main)] space-y-4`}>
+            <div className={`p - 4 mt - auto border - t border - [var(--border - main)]space - y - 4`}>
                 {syncProgress && (
                     <div className={cn("px-1", collapsed ? "flex justify-center" : "space-y-2")}>
                         {collapsed ? (
-                            <div className="relative w-8 h-8 flex items-center justify-center" title={`Syncing: ${Math.round(syncProgress.current)}%`}>
+                            <div className="relative w-8 h-8 flex items-center justify-center" title={`Syncing: ${Math.round(syncProgress.current)}% `}>
                                 <svg className="w-full h-full -rotate-90">
                                     <circle
                                         cx="16" cy="16" r="14"
@@ -178,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <motion.div
                                         className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${syncProgress.current}%` }}
+                                        animate={{ width: `${syncProgress.current}% ` }}
                                         transition={{ type: "spring", bounce: 0, duration: 1 }}
                                     />
                                 </div>
@@ -188,17 +191,39 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 <button
                     onClick={onOpenSettings}
-                    className={`w-full h-11 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-300 ${collapsed ? 'justify-center px-0' : 'justify-center'}`}
+                    className={`w - full h - 11 flex items - center gap - 2.5 text - xs font - black uppercase tracking - widest bg - black / [0.03] dark: bg - white / [0.03] border border - black / 5 dark: border - white / 10 rounded - xl hover: bg - black / 5 dark: hover: bg - white / 5 active: scale - [0.98] transition - all duration - 300 ${collapsed ? 'justify-center px-0' : 'justify-center'} `}
                     title={collapsed ? 'Settings' : ''}
                 >
                     <Settings size={14} className="opacity-70" /> {!collapsed && 'Settings'}
                 </button>
+            </div>
+            {/* User Account Info */}
+            <div className={`mt - auto p - 4 border - t border - [var(--border - main)]transition - all duration - 300 ${collapsed ? 'items-center' : ''} `}>
+                <div className={`flex items - center gap - 3 ${collapsed ? 'justify-center' : ''} p - 2 rounded - xl bg - black / 5 dark: bg - white / 5`}>
+                    <div className="relative">
+                        {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} className="w-8 h-8 rounded-full border border-blue-500/30" alt="Avatar" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500 font-bold text-xs">
+                                {profile?.username?.[0] || 'U'}
+                            </div>
+                        )}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[var(--bg-sidebar)]" />
+                    </div>
+                    {!collapsed && (
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold truncate">{profile?.full_name || profile?.username || 'Guest'}</p>
+                            <p className="text-[10px] opacity-40 truncate">Cloud Sync Enabled</p>
+                        </div>
+                    )}
+                </div>
+
                 <button
                     onClick={onSignOut}
-                    className={`w-full h-11 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest bg-red-500/[0.05] border border-red-500/10 text-red-500 rounded-xl hover:bg-red-500/10 active:scale-[0.98] transition-all duration-300 ${collapsed ? 'justify-center px-0' : 'justify-center'}`}
-                    title={collapsed ? 'Sign Out' : ''}
+                    className={`w - full mt - 3 flex items - center gap - 3 px - 4 py - 2.5 rounded - xl text - red - 500 / 60 hover: text - red - 500 hover: bg - red - 500 / 10 transition - all font - bold text - xs ${collapsed ? 'justify-center' : ''} `}
                 >
-                    <LogOut size={14} /> {!collapsed && 'Sign Out'}
+                    <LogOut size={16} />
+                    {!collapsed && <span>Sign Out</span>}
                 </button>
             </div>
         </aside>
