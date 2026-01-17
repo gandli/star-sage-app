@@ -2,15 +2,38 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Github, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
-type AuthMode = 'signin' | 'signup' | 'forgot_password';
+type AuthMode = 'signin' | 'signup' | 'forgot_password' | 'update_password';
 
 export const AuthScreen: React.FC = () => {
-    const [mode, setMode] = useState<AuthMode>('signin');
+    const [mode, setMode] = useState<AuthMode>(() => {
+        // Detect recovery mode from URL hash
+        if (window.location.hash.includes('type=recovery')) return 'update_password';
+        return 'signin';
+    });
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+            setMessage('Password updated successfully! Redirecting...');
+            setTimeout(() => {
+                window.history.replaceState(null, '', window.location.pathname);
+                setMode('signin');
+            }, 2000);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleGithubLogin = async () => {
         try {

@@ -20,6 +20,11 @@ export function useAuth() {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
+
+            // Clean up the URL hash if it contains the auth token
+            if (session && window.location.hash.includes('access_token')) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
         });
 
         return () => subscription.unsubscribe();
