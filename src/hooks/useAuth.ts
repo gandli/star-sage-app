@@ -8,26 +8,38 @@ export function useAuth() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) console.error("Session fetch error:", error.message);
+            if (isMounted) {
+                setSession(session);
+                setUser(session?.user ?? null);
+                setLoading(false);
+            }
         });
 
         // Listen for changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
+            console.log(`Auth event: ${_event}`);
+            if (isMounted) {
+                setSession(session);
+                setUser(session?.user ?? null);
+                setLoading(false);
 
-            // Clean up the URL hash if it contains the auth token
-            if (session && window.location.hash.includes('access_token')) {
-                window.history.replaceState(null, '', window.location.pathname);
+                // Clean up the URL hash if it contains the auth token
+                if (session && window.location.hash.includes('access_token')) {
+                    const cleanUrl = window.location.origin + window.location.pathname;
+                    window.history.replaceState(null, '', cleanUrl);
+                }
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     const signOut = async () => {
