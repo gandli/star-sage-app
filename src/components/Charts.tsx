@@ -47,6 +47,23 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
         );
     };
 
+    // Custom Y-axis tick renderer with Devicon icons for Hot Topics
+    const renderYAxisTickWithIcon = (props: any) => {
+        const { x, y, payload } = props;
+        return (
+            <g transform={`translate(${x - 90},${y - 12})`}>
+                <foreignObject x={0} y={0} width={90} height={24}>
+                    <div className="flex items-center justify-end gap-2 pr-2 h-full">
+                        <span className="text-[9px] font-black uppercase tracking-tight opacity-70 truncate max-w-[60px]">
+                            {payload.value}
+                        </span>
+                        <LanguageIcon name={payload.value} size={14} color="#ec4899" />
+                    </div>
+                </foreignObject>
+            </g>
+        );
+    };
+
     const tooltipStyle = {
         background: 'var(--bg-glass)',
         backdropFilter: 'var(--glass-blur)',
@@ -100,7 +117,7 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                         <AreaChart data={starTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
                                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
@@ -129,7 +146,7 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                 type="monotone"
                                 dataKey="count"
                                 stroke="#6366f1"
-                                strokeWidth={3}
+                                strokeWidth={4}
                                 fillOpacity={1}
                                 fill="url(#colorTrend)"
                                 isAnimationActive={!isSyncing}
@@ -181,7 +198,7 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                         <BarChart
                             layout="vertical"
                             data={hotTopics}
-                            margin={{ top: 0, right: 30, left: 40, bottom: 0 }}
+                            margin={{ top: 0, right: 30, left: 60, bottom: 0 }}
                         >
                             <CartesianGrid strokeDasharray="8 8" horizontal={false} stroke="var(--chart-grid)" />
                             <XAxis type="number" hide />
@@ -192,8 +209,8 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                 fontSize={10}
                                 tickLine={false}
                                 axisLine={false}
-                                width={80}
-                                tick={{ fontWeight: 900, opacity: 0.7, textTransform: 'uppercase' }}
+                                width={100}
+                                tick={renderYAxisTickWithIcon}
                             />
                             <RechartsTooltip cursor={{ fill: 'rgba(236, 72, 153, 0.05)', radius: 10 }} contentStyle={tooltipStyle} />
                             <Bar

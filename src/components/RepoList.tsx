@@ -16,6 +16,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
     const [translatedDesc, setTranslatedDesc] = React.useState<string | null>(null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
     const [isTranslating, setIsTranslating] = React.useState(false);
+    const [translationError, setTranslationError] = React.useState<boolean>(false);
 
     // Format date to relative time or readable string
     const formatUpdateDate = (dateString: string) => {
@@ -109,16 +110,26 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
                 }
 
                 setIsTranslating(true);
+                setTranslationError(false);
                 const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=en|zh-CN`);
                 const data = await res.json();
 
                 if (data.responseData?.translatedText) {
                     const translated = data.responseData.translatedText;
-                    setTranslatedDesc(translated);
-                    await db.set(cacheKey, translated);
+                    // Check for MyMemory limit warning
+                    if (translated.toUpperCase().includes('MYMEMORY WARNING') ||
+                        translated.toUpperCase().includes('YOU USED ALL AVAILABLE FREE TRANSLATIONS')) {
+                        console.warn('MyMemory limit reached');
+                        setTranslationError(true);
+                        setTranslatedDesc(null);
+                    } else {
+                        setTranslatedDesc(translated);
+                        await db.set(cacheKey, translated);
+                    }
                 }
             } catch (e) {
                 console.error('Translation failed:', e);
+                setTranslationError(true);
             } finally {
                 setIsTranslating(false);
             }
@@ -188,6 +199,11 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
                     {isTranslating && !translatedDesc && (
                         <div className="mt-2 flex items-center gap-1.5 opacity-20 text-[9px] font-bold italic animate-pulse">
                             <Languages size={10} /> Optimizing language localization...
+                        </div>
+                    )}
+                    {translationError && !translatedDesc && (
+                        <div className="mt-2 flex items-center gap-1.5 opacity-30 text-[9px] font-bold italic text-amber-500/60">
+                            <Languages size={10} /> Translation unavailable, showing original...
                         </div>
                     )}
                 </div>
