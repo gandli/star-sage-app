@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, List as ListIcon, Filter, Settings, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, List as ListIcon, Filter, Settings, PanelLeft, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn, getLanguageColor } from '../utils/theme';
 import { LanguageIcon } from './LanguageIcon';
@@ -15,6 +15,7 @@ interface SidebarProps {
     setCurrentPage: (page: number) => void;
     syncProgress: SyncProgress | null;
     onOpenSettings: () => void;
+    onSignOut: () => void;
 }
 
 
@@ -28,7 +29,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     setSelectedLanguage,
     setCurrentPage,
     syncProgress,
-    onOpenSettings
+    onOpenSettings,
+    onSignOut
 }) => {
     const [collapsed, setCollapsed] = useState(() => {
         return localStorage.getItem('gh_stars_sidebar_collapsed') === 'true';

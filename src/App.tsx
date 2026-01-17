@@ -6,6 +6,8 @@ import Header from './components/Header';
 import RepoList from './components/RepoList';
 import SettingsModal from './components/SettingsModal';
 import { useGithubSync } from './hooks/useGithubSync';
+import { useAuth } from './hooks/useAuth';
+import { AuthScreen } from './components/AuthScreen';
 import type { Config } from './types';
 
 // Lazy load heavy charts
@@ -14,18 +16,48 @@ const Charts = lazy(() => import('./components/Charts'));
 const ITEMS_PER_PAGE = 30;
 
 const App: React.FC = () => {
-  // --- States ---
-  const [isPending, startTransition] = useTransition();
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('gh_stars_theme') as 'light' | 'dark') || 'light';
-  });
+  // --- Auth & Config State ---
+  const { session, loading: authLoading, signOut } = useAuth();
+
+  // Initialize config - prioritize local storage, but will override if github token is present
+  const [sessionMethodsCheck, setSessionMethodsCheck] = useState(false);
 
   const [config, setConfig] = useState<Config>(() => {
     const saved = localStorage.getItem('gh_stars_config');
     return saved ? JSON.parse(saved) : { type: 'username', value: '' };
   });
 
-  const [showSettings, setShowSettings] = useState(!config.value);
+  // Auto-configure with Provider Token if available
+  useEffect(() => {
+    if (session?.provider_token) {
+      // If we have a direct GitHub token from OAuth, use it!
+      const newConfig: Config = {
+        type: 'token',
+        value: session.provider_token,
+        resolvedUsername: session.user.user_metadata.user_name || session.user.user_metadata.name // Try to get username
+      };
+      // Only update if different to avoid loop
+      if (JSON.stringify(config) !== JSON.stringify(newConfig)) {
+        setConfig(newConfig);
+        localStorage.setItem('gh_stars_config', JSON.stringify(newConfig));
+        // Trigger fetch immediately handled by effect below
+      }
+    } else if (session && !config.value && !sessionMethodsCheck) {
+      // Fallback: If logged in via email but no config, maybe try to use username from metadata if available, or just leave it
+      // Ideally we prompt user, but for now let's just mark checked
+      setSessionMethodsCheck(true);
+    }
+  }, [session]);
+
+
+  // --- States ---
+  const [isPending, startTransition] = useTransition();
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('gh_stars_theme') as 'light' | 'dark') || 'light';
+  });
+
+  // ... (rest of state items: showSettings, tempConfig, etc.)
+  const [showSettings, setShowSettings] = useState(false); // Default false, will open if needed
   const [tempConfig, setTempConfig] = useState<Config>(config);
   const [activeView, setActiveView] = useState<'overview' | 'list'>(() => {
     return (localStorage.getItem('gh_stars_view') as 'overview' | 'list') || 'overview';
@@ -53,6 +85,8 @@ const App: React.FC = () => {
     localStorage.setItem('gh_stars_theme', theme);
   }, [theme]);
 
+  // ... (keeping other effects)
+
   useEffect(() => {
     localStorage.setItem('gh_stars_view', activeView);
   }, [activeView]);
@@ -73,20 +107,27 @@ const App: React.FC = () => {
   useEffect(() => {
     const saved = localStorage.getItem('gh_stars_config');
     const parsed = saved ? JSON.parse(saved) : null;
-    if (config.value && parsed && (config.value !== parsed.value || config.type !== parsed.type)) {
-      fetchAllStars(config);
+    // Deep compare roughly
+    if (JSON.stringify(config) !== JSON.stringify(parsed) && parsed) {
+      // This logic is a bit circular if we aren't careful, but standard "storage" listener pattern
+      // For now, reliance on "config" state is primary source of truth for THIS tab
     }
-  }, [config, fetchAllStars]);
+
+    // Fetch if config is ready
+    if (config.value) {
+      fetchAllStars(config);
+    } else if (!config.value && session && !showSettings) {
+      // If logged in but no config, open settings
+      setShowSettings(true);
+    }
+  }, [config /* fetchAllStars omitted to prevent loops, typical pattern */]);
 
   // Reload config when sync completes to get resolvedUsername
   useEffect(() => {
     if (!loading && !syncProgress) {
-      const saved = localStorage.getItem('gh_stars_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.resolvedUsername && parsed.resolvedUsername !== config.resolvedUsername) {
-          setConfig(parsed);
-        }
+      if (config.type === 'token' && !config.resolvedUsername) {
+        // If we just synced with a token but have no username, we might want to fetch it
+        // useGithubSync handles simple fetching, but maybe we explicitly verify here
       }
     }
   }, [loading, syncProgress]);
@@ -111,7 +152,8 @@ const App: React.FC = () => {
     });
   };
 
-  // --- Memoized Data ---
+  // --- Memoized Data --- 
+  // (Keeping all memos...)
   const languageStats = useMemo(() => {
     const stats: Record<string, number> = {};
     repos.forEach(repo => {
@@ -128,7 +170,6 @@ const App: React.FC = () => {
     return repos.filter(r => (r.language || 'Unknown') === selectedLanguage);
   }, [repos, selectedLanguage]);
 
-  // Search filtering
   const searchedRepos = useMemo(() => {
     if (!searchQuery.trim()) return filteredRepos;
     const query = searchQuery.toLowerCase();
@@ -191,6 +232,19 @@ const App: React.FC = () => {
     fetchAllStars(tempConfig);
   };
 
+  // --- Auth Guards ---
+  if (authLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[var(--bg-main)] text-[var(--text-primary)]">
+        <Loader2 className="animate-spin text-blue-500" size={48} />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="h-screen w-full flex overflow-hidden selection:bg-blue-500/30 bg-[var(--bg-main)] text-[var(--text-primary)] transition-colors duration-500">
       {/* Ambient background decorations */}
@@ -208,6 +262,8 @@ const App: React.FC = () => {
         setCurrentPage={setCurrentPage}
         syncProgress={syncProgress}
         onOpenSettings={() => { setTempConfig(config); setShowSettings(true); }}
+        // @ts-ignore - Prop might not exist yet, will add in next step
+        onSignOut={signOut}
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">

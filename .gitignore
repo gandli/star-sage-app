@@ -28,3 +28,4 @@ dist-ssr
 .opencode/*
 bun.lock
 bun.lock
+.env
