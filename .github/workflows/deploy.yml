@@ -35,6 +35,8 @@ jobs:
           # If you have a custom domain, remove this line or set it to '/'
           # If you are deploying to https://<user>.github.io/<repo>, set this to '/<repo>/'
           VITE_BASE_URL: /${{ github.event.repository.name }}/
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
