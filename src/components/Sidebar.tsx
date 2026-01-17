@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { cn, getLanguageColor } from '../utils/theme';
 import { LanguageIcon } from './LanguageIcon';
 import type { Repo, SyncProgress } from '../types';
+import logo from '../assets/icon.png';
 
 interface SidebarProps {
     activeView: 'overview' | 'list';
@@ -50,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className={`flex items-center transition-all duration-300 ${collapsed ? 'justify-center h-16 flex-col gap-3 pt-6' : 'justify-between h-20 px-6'}`}>
                 <div className={`flex items-center gap-3 overflow-hidden ${collapsed ? 'justify-center w-full' : ''}`}>
                     <img
-                        src="/icon.png"
+                        src={logo}
                         alt="Logo"
                         className={`transition-all duration-300 ${collapsed ? 'w-8 h-8' : 'w-8 h-8'}`}
                     />
