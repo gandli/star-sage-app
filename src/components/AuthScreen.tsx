@@ -108,12 +108,13 @@ export const AuthScreen: React.FC = () => {
                         <p className="text-sm opacity-60 font-medium">
                             {mode === 'signin' ? 'Welcome back! Login to continue.' :
                                 mode === 'signup' ? 'Create an account to get started.' :
-                                    'Reset your password.'}
+                                    mode === 'update_password' ? 'Set your new password below.' :
+                                        'Reset your password.'}
                         </p>
                     </div>
 
                     {/* OAuth Buttons */}
-                    {mode !== 'forgot_password' && (
+                    {mode !== 'forgot_password' && mode !== 'update_password' && (
                         <div className="mb-6">
                             <button
                                 onClick={handleGithubLogin}
@@ -136,26 +137,28 @@ export const AuthScreen: React.FC = () => {
                     )}
 
                     {/* Email Form */}
-                    <form onSubmit={handleEmailAuth} className="space-y-4">
+                    <form onSubmit={mode === 'update_password' ? handleUpdatePassword : handleEmailAuth} className="space-y-4">
                         <div className="space-y-4">
-                            <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] transition-colors group-focus-within:text-blue-500" size={18} />
-                                <input
-                                    type="email"
-                                    placeholder="Email address"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    className="w-full h-12 pl-12 pr-4 bg-black/5 dark:bg-white/5 border border-transparent focus:border-blue-500 rounded-xl outline-none transition-all placeholder:text-gray-400 font-medium"
-                                />
-                            </div>
+                            {mode !== 'update_password' && (
+                                <div className="relative group">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] transition-colors group-focus-within:text-blue-500" size={18} />
+                                    <input
+                                        type="email"
+                                        placeholder="Email address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                        className="w-full h-12 pl-12 pr-4 bg-black/5 dark:bg-white/5 border border-transparent focus:border-blue-500 rounded-xl outline-none transition-all placeholder:text-gray-400 font-medium"
+                                    />
+                                </div>
+                            )}
 
                             {mode !== 'forgot_password' && (
                                 <div className="relative group">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] transition-colors group-focus-within:text-blue-500" size={18} />
                                     <input
                                         type="password"
-                                        placeholder="Password"
+                                        placeholder={mode === 'update_password' ? "New Password" : "Password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
@@ -186,34 +189,39 @@ export const AuthScreen: React.FC = () => {
                             className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50"
                         >
                             {loading && <Loader2 className="animate-spin" size={18} />}
-                            {mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
+                            {mode === 'signin' ? 'Sign In' :
+                                mode === 'signup' ? 'Create Account' :
+                                    mode === 'update_password' ? 'Update Password' :
+                                        'Send Reset Link'}
                             {!loading && <ArrowRight size={18} />}
                         </button>
                     </form>
 
                     {/* Mode Toggles */}
-                    <div className="mt-8 text-center text-xs font-medium space-y-2 text-[var(--text-secondary)]">
-                        {mode === 'signin' ? (
-                            <>
+                    {mode !== 'update_password' && (
+                        <div className="mt-8 text-center text-xs font-medium space-y-2 text-[var(--text-secondary)]">
+                            {mode === 'signin' ? (
+                                <>
+                                    <p>
+                                        Don't have an account?{' '}
+                                        <button onClick={() => setMode('signup')} className="text-blue-500 hover:underline">Sign up</button>
+                                    </p>
+                                    <button onClick={() => setMode('forgot_password')} className="text-[var(--text-primary)] hover:underline opacity-60">
+                                        Forgot password?
+                                    </button>
+                                </>
+                            ) : mode === 'signup' ? (
                                 <p>
-                                    Don't have an account?{' '}
-                                    <button onClick={() => setMode('signup')} className="text-blue-500 hover:underline">Sign up</button>
+                                    Already have an account?{' '}
+                                    <button onClick={() => setMode('signin')} className="text-blue-500 hover:underline">Sign in</button>
                                 </p>
-                                <button onClick={() => setMode('forgot_password')} className="text-[var(--text-primary)] hover:underline opacity-60">
-                                    Forgot password?
+                            ) : (
+                                <button onClick={() => setMode('signin')} className="text-blue-500 hover:underline flex items-center justify-center gap-1 mx-auto">
+                                    Back to login
                                 </button>
-                            </>
-                        ) : mode === 'signup' ? (
-                            <p>
-                                Already have an account?{' '}
-                                <button onClick={() => setMode('signin')} className="text-blue-500 hover:underline">Sign in</button>
-                            </p>
-                        ) : (
-                            <button onClick={() => setMode('signin')} className="text-blue-500 hover:underline flex items-center justify-center gap-1 mx-auto">
-                                Back to login
-                            </button>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
