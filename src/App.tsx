@@ -117,10 +117,16 @@ const App: React.FC = () => {
     return (localStorage.getItem('gh_stars_sort_direction') as any) || 'desc';
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { repos, loading, syncProgress, error, setError, fetchAllStars } = useGithubSync(config);
+
+  // Close mobile menu on navigate
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeView, selectedLanguage]);
 
   // --- Effects ---
   useEffect(() => {
@@ -331,6 +337,8 @@ const App: React.FC = () => {
         onOpenSettings={() => { setTempConfig(config); setShowSettings(true); }}
         onSignOut={signOut}
         profile={profile}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -358,6 +366,7 @@ const App: React.FC = () => {
           setSortOrder={setSortOrder}
           sortDirection={sortDirection}
           setSortDirection={setSortDirection}
+          onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
 
 

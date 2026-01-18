@@ -112,13 +112,13 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
             {/* 1. Language Distribution (Pie) */}
-            <div className="premium-glass p-8 h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500">
+            <div className="premium-glass p-6 md:p-8 h-[380px] md:h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 opacity-30">Distribution <span className="opacity-100 text-blue-500 ml-1">/ Language</span></h3>
                 <div className="flex-1 w-full relative">
                     {pieData && pieData.length > 0 ? (
-                        <ResponsiveContainer width="100%" aspect={1.5} debounce={100} minWidth={1} minHeight={1} initialDimension={{ width: 400, height: 266 }}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <PieChart>
                                 <Pie
                                     data={pieData}
@@ -150,11 +150,11 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
             </div>
 
             {/* 2. Star Trends (Area) */}
-            <div className="premium-glass p-8 h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-indigo-500/5 transition-all duration-500">
+            <div className="premium-glass p-6 md:p-8 h-[380px] md:h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-indigo-500/5 transition-all duration-500">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 opacity-30">Growth <span className="opacity-100 text-indigo-500 ml-1">/ Star Trends</span></h3>
                 <div className="flex-1 w-full relative">
                     {starTrends && starTrends.length > 0 ? (
-                        <ResponsiveContainer width="100%" aspect={1.5} debounce={100} minWidth={1} minHeight={1} initialDimension={{ width: 400, height: 266 }}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <AreaChart data={starTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
@@ -203,11 +203,11 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
             </div>
 
             {/* 3. Ranking (Bar) */}
-            <div className="premium-glass p-8 h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-purple-500/5 transition-all duration-500">
+            <div className="premium-glass p-6 md:p-8 h-[380px] md:h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-purple-500/5 transition-all duration-500">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 opacity-30">Ranking <span className="opacity-100 text-purple-500 ml-1">/ Language Stack</span></h3>
                 <div className="flex-1 w-full relative">
                     {languageStats && languageStats.length > 0 ? (
-                        <ResponsiveContainer width="100%" aspect={1.5} debounce={100} minWidth={1} minHeight={1} initialDimension={{ width: 400, height: 266 }}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <BarChart data={languageStats.slice(0, 8)} margin={{ top: 0, right: 0, left: -25, bottom: 10 }}>
                                 <CartesianGrid strokeDasharray="8 8" vertical={false} stroke="var(--chart-grid)" />
                                 <XAxis
@@ -243,11 +243,11 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
             </div>
 
             {/* 4. Hot Topics (Horizontal Bar) */}
-            <div className="premium-glass p-8 h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-pink-500/5 transition-all duration-500">
+            <div className="premium-glass p-6 md:p-8 h-[380px] md:h-[450px] flex flex-col rounded-[2.5rem] hover:shadow-2xl hover:shadow-pink-500/5 transition-all duration-500">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-6 opacity-30">Hot Topics <span className="opacity-100 text-pink-500 ml-1">/ Interest Area</span></h3>
                 <div className="flex-1 w-full relative">
                     {hotTopics && hotTopics.length > 0 ? (
-                        <ResponsiveContainer width="100%" aspect={1.5} debounce={100} minWidth={1} minHeight={1} initialDimension={{ width: 400, height: 266 }}>
+                        <ResponsiveContainer width="100%" height="100%" debounce={100}>
                             <BarChart
                                 layout="vertical"
                                 data={hotTopics}

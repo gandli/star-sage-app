@@ -167,3 +167,23 @@
         padding-right: max(1rem, env(safe-area-inset-right));
     }
 }
+
+@media (max-width: 768px) {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+    
+    main {
+        padding-bottom: 80px;
+    }
+
+    .premium-glass {
+        border-radius: 1.5rem !important;
+    }
+}
+
+body {
+    overflow-x: hidden;
+    position: relative;
+}
