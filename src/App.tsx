@@ -120,6 +120,7 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isMounted = useRef(false);
 
   const { repos, loading, syncProgress, error, setError, fetchAllStars } = useGithubSync(config);
 
@@ -131,12 +132,16 @@ const App: React.FC = () => {
   // --- Effects ---
   useEffect(() => {
     localStorage.setItem('gh_stars_sort_order', sortOrder);
-    setCurrentPage(1);
+    if (isMounted.current) {
+      setCurrentPage(1);
+    }
   }, [sortOrder]);
 
   useEffect(() => {
     localStorage.setItem('gh_stars_sort_direction', sortDirection);
-    setCurrentPage(1);
+    if (isMounted.current) {
+      setCurrentPage(1);
+    }
   }, [sortDirection]);
 
   useEffect(() => {
@@ -166,11 +171,23 @@ const App: React.FC = () => {
     } else {
       localStorage.removeItem('gh_stars_language');
     }
+    if (isMounted.current) {
+      setCurrentPage(1);
+    }
   }, [selectedLanguage]);
 
   useEffect(() => {
     localStorage.setItem('gh_stars_search', searchQuery);
+    if (isMounted.current) {
+      setCurrentPage(1);
+    }
   }, [searchQuery]);
+
+  // IMPORTANT: Set to true AFTER initial mount effects have run to prevent reset-to-page-1 bug
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   // 如果登录但没有配置，打开设置面板
   useEffect(() => {
