@@ -233,13 +233,13 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
                 stiffness: 100,
                 damping: 15
             }}
-            className="group relative flex flex-col p-5 rounded-[2rem] premium-glass transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-500/10 content-visibility-auto overflow-hidden border-[var(--border-glass)] bg-[var(--bg-glass)] h-[300px]"
+            className="group relative flex flex-col p-4 rounded-[1.75rem] premium-glass transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-500/10 content-visibility-auto overflow-hidden border-[var(--border-glass)] bg-[var(--bg-glass)] h-[260px]"
         >
             {/* Subtle glow effect on hover */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <div className="relative z-10 flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                         <div className="relative group/avatar">
                             <img src={repo.owner.avatar_url} alt={`${repo.owner.login} avatar`} className="w-8 h-8 rounded-2xl ring-2 ring-black/5 dark:ring-white/10 group-hover/avatar:scale-110 transition-transform duration-300" />
@@ -269,9 +269,9 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
                     </h3>
                 </a>
 
-                <div className="flex flex-col mb-3 flex-grow">
+                <div className="flex flex-col mb-2 flex-grow">
                     <p className={cn(
-                        "text-xs font-medium opacity-60 leading-relaxed transition-all duration-500 group-hover:opacity-90 line-clamp-4 h-[75px]",
+                        "text-xs font-medium opacity-60 leading-relaxed transition-all duration-500 group-hover:opacity-90 line-clamp-3 h-[50px]",
                         isShowingChinese && "opacity-90 dark:opacity-80 font-normal"
                     )}>
                         {fetchingReadme ? (
@@ -286,7 +286,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
 
                 {/* Topics section */}
                 {repo.topics && repo.topics.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3 h-[26px] overflow-hidden">
+                    <div className="flex flex-wrap gap-2 mb-2 h-[26px] overflow-hidden">
                         {repo.topics.slice(0, 4).map(topic => (
                             <span
                                 key={topic}
@@ -298,7 +298,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
                     </div>
                 )}
 
-                <div className="mt-auto pt-4 border-t border-[var(--border-main)] flex items-center justify-between">
+                <div className="mt-auto pt-3 border-t border-[var(--border-main)] flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         {repo.language && (
                             <div className="flex items-center gap-2 group/lang">

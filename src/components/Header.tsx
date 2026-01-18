@@ -96,9 +96,6 @@ const Header: React.FC<HeaderProps> = ({
                     <PanelLeft size={18} className="text-blue-500" />
                 </button>
 
-                <div className="hidden sm:flex h-8 w-8 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
-                    {activeView === 'overview' ? <LayoutDashboard size={14} /> : <ListIcon size={14} />}
-                </div>
                 <div className="flex flex-col justify-center">
                     <h2 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none truncate max-w-[80px] xs:max-w-[120px] md:max-w-[240px]">
                         {activeView === 'overview' ? 'Overview' : (selectedLanguage ? `${selectedLanguage}` : 'All repos')}
