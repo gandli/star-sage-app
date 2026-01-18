@@ -110,12 +110,29 @@ const App: React.FC = () => {
     return saved ? parseInt(saved, 10) : 30;
   });
 
+  const [sortOrder, setSortOrder] = useState<'starred_at' | 'updated_at' | 'stargazers_count' | 'name'>(() => {
+    return (localStorage.getItem('gh_stars_sort_order') as any) || 'starred_at';
+  });
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => {
+    return (localStorage.getItem('gh_stars_sort_direction') as any) || 'desc';
+  });
+
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { repos, loading, syncProgress, error, setError, fetchAllStars } = useGithubSync(config);
 
   // --- Effects ---
+  useEffect(() => {
+    localStorage.setItem('gh_stars_sort_order', sortOrder);
+    setCurrentPage(1);
+  }, [sortOrder]);
+
+  useEffect(() => {
+    localStorage.setItem('gh_stars_sort_direction', sortDirection);
+    setCurrentPage(1);
+  }, [sortDirection]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('gh_stars_theme', theme);
@@ -209,10 +226,31 @@ const App: React.FC = () => {
     );
   }, [filteredRepos, searchQuery]);
 
+  const sortedRepos = useMemo(() => {
+    return [...searchedRepos].sort((a, b) => {
+      let valA: any = a[sortOrder];
+      let valB: any = b[sortOrder];
+
+      // Handle missing values
+      if (valA === undefined || valA === null) valA = '';
+      if (valB === undefined || valB === null) valB = '';
+
+      // Special handling for dates
+      if (sortOrder === 'starred_at' || sortOrder === 'updated_at') {
+        valA = valA ? new Date(valA).getTime() : 0;
+        valB = valB ? new Date(valB).getTime() : 0;
+      }
+
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [searchedRepos, sortOrder, sortDirection]);
+
   const paginatedRepos = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return searchedRepos.slice(start, start + itemsPerPage);
-  }, [searchedRepos, currentPage, itemsPerPage]);
+    return sortedRepos.slice(start, start + itemsPerPage);
+  }, [sortedRepos, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(searchedRepos.length / itemsPerPage);
 
@@ -316,6 +354,10 @@ const App: React.FC = () => {
               setActiveView('list');
             }
           }}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          sortDirection={sortDirection}
+          setSortDirection={setSortDirection}
         />
 
 

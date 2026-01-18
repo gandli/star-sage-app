@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List as ListIcon, Moon, Sun, ShieldCheck, User, RefreshCw, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, List as ListIcon, Moon, Sun, ShieldCheck, User, RefreshCw, Search, X, ChevronLeft, ChevronRight, SortDesc, SortAsc, Clock, Calendar, Star, Type } from 'lucide-react';
 
 import type { Config } from '../types';
 import type { Profile } from '../hooks/useProfile';
@@ -20,6 +20,11 @@ interface HeaderProps {
     currentPage: number;
     totalPages: number;
     setCurrentPage: (page: number | ((p: number) => number)) => void;
+
+    sortOrder: 'starred_at' | 'updated_at' | 'stargazers_count' | 'name';
+    setSortOrder: (order: 'starred_at' | 'updated_at' | 'stargazers_count' | 'name') => void;
+    sortDirection: 'asc' | 'desc';
+    setSortDirection: (dir: 'asc' | 'desc') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -36,7 +41,11 @@ const Header: React.FC<HeaderProps> = ({
     profile,
     currentPage,
     totalPages,
-    setCurrentPage
+    setCurrentPage,
+    sortOrder,
+    setSortOrder,
+    sortDirection,
+    setSortDirection
 }) => {
 
     const [hasUnfinishedSync, setHasUnfinishedSync] = React.useState(false);
@@ -59,12 +68,18 @@ const Header: React.FC<HeaderProps> = ({
         };
 
         checkSyncState();
-        // 初始检查后，如果正在 loading，过一会儿再查一次（因为同步开始后会更新 localStorage）
         if (loading) {
             const timer = setTimeout(checkSyncState, 2000);
             return () => clearTimeout(timer);
         }
     }, [config.type, config.value, loading]);
+
+    const sortOptions = [
+        { value: 'starred_at', label: 'Starred At', icon: <Clock size={12} /> },
+        { value: 'updated_at', label: 'Updated', icon: <Calendar size={12} /> },
+        { value: 'stargazers_count', label: 'Popularity', icon: <Star size={12} /> },
+        { value: 'name', label: 'Title', icon: <Type size={12} /> },
+    ] as const;
 
     return (
         <header
@@ -116,25 +131,54 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 {activeView === 'list' && (
-                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 mx-1">
-                        <button
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                            className="p-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
-                        >
-                            <ChevronLeft size={16} />
-                        </button>
-                        <div className="px-2 text-[10px] font-black tabular-nums opacity-60">
-                            {currentPage} <span className="opacity-20">/</span> {totalPages || 1}
+                    <>
+                        {/* Sort Selector */}
+                        <div className="flex items-center gap-1 p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <div className="relative flex items-center">
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value as any)}
+                                    className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-wider pl-2 pr-6 py-1 cursor-pointer appearance-none"
+                                >
+                                    {sortOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value} className="bg-[var(--bg-main)] text-[var(--text-primary)]">
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronRight size={10} className="absolute right-2 rotate-90 opacity-40 pointer-events-none" />
+                            </div>
+                            <div className="w-px h-3 bg-black/10 dark:bg-white/10 mx-0.5" />
+                            <button
+                                onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                                className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all"
+                                title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                            >
+                                {sortDirection === 'asc' ? <SortAsc size={14} className="text-blue-500" /> : <SortDesc size={14} className="text-blue-500" />}
+                            </button>
                         </div>
-                        <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages}
-                            className="p-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
-                        >
-                            <ChevronRight size={16} />
-                        </button>
-                    </div>
+
+                        {/* Pagination */}
+                        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <div className="px-2 text-[10px] font-black tabular-nums opacity-60">
+                                {currentPage} <span className="opacity-20">/</span> {totalPages || 1}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </>
                 )}
 
                 <button
