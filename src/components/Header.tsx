@@ -168,8 +168,8 @@ const Header: React.FC<HeaderProps> = ({
                             </button>
                         </div>
 
-                        {/* Pagination - Highly simplified on mobile */}
-                        <div className="flex items-center h-10 gap-0.5 md:gap-1 px-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                        {/* Pagination - Hidden on mobile, only show on larger screens */}
+                        <div className="hidden sm:flex items-center h-10 gap-1 px-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
@@ -177,8 +177,8 @@ const Header: React.FC<HeaderProps> = ({
                             >
                                 <ChevronLeft size={16} />
                             </button>
-                            <div className="hidden xs:flex h-full items-center px-1 text-[9px] md:text-[10px] font-black tabular-nums opacity-60">
-                                {currentPage}<span className="hidden sm:inline"> <span className="opacity-20">/</span> {totalPages || 1}</span>
+                            <div className="flex h-full items-center px-1 text-[9px] md:text-[10px] font-black tabular-nums opacity-60">
+                                {currentPage} <span className="opacity-20 mx-1">/</span> {totalPages || 1}
                             </div>
                             <button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
@@ -198,7 +198,7 @@ const Header: React.FC<HeaderProps> = ({
                     <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
 
-                <div className="flex items-center h-10 gap-2 md:gap-2.5 px-3 md:px-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group transition-all">
+                <div className="hidden sm:flex items-center h-10 gap-2 md:gap-2.5 px-3 md:px-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group transition-all">
                     {profile?.avatar_url ? (
                         <img src={profile.avatar_url} alt="Profile" className="w-5 h-5 rounded-full border border-white/20" />
                     ) : (

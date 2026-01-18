@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, List as ListIcon, Filter, Settings, PanelLeft, LogOut } from 'lucide-react';
+import { LayoutDashboard, List as ListIcon, Filter, Settings, PanelLeft, LogOut, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, getLanguageColor } from '../utils/theme';
 import { LanguageIcon } from './LanguageIcon';
@@ -21,6 +21,8 @@ interface SidebarProps {
     profile: Profile | null;
     isOpen?: boolean;
     onClose?: () => void;
+    theme?: 'light' | 'dark';
+    setTheme?: (theme: 'light' | 'dark') => void;
 }
 
 
@@ -234,15 +236,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     </div>
 
-                    <button
-                        onClick={onSignOut}
-                        className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
-                    >
-                        <LogOut size={16} />
-                        {!collapsed && <span>Sign Out</span>}
-                    </button>
                 </div>
-            </aside>
+
+                {/* Theme Toggle in Sidebar (For Mobile/Expanded) */}
+                {(theme && setTheme) && (
+                    <button
+                        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                        className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                    >
+                        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                        {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+                    </button>
+                )}
+
+                <button
+                    onClick={onSignOut}
+                    className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                >
+                    <LogOut size={16} />
+                    {!collapsed && <span>Sign Out</span>}
+                </button>
+            </div>
+        </aside >
         </>
     );
 };
