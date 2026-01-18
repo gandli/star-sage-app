@@ -373,6 +373,12 @@ const App: React.FC = () => {
               >
 
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <StatCard icon={<Star size={32} className="text-yellow-500" />} value={repos.length} label="Starred Repos" />
+                  <StatCard icon={<Code2 size={32} className="text-purple-500" />} value={languageStats.length} label="Different Languages" />
+                  <StatCard icon={<History size={32} className="text-blue-500" />} value={languageStats[0]?.name || '-'} label="Dominant Skill" />
+                </div>
+
                 <Suspense fallback={
                   <div className="h-[450px] flex items-center justify-center opacity-50">
                     <Loader2 className="animate-spin mr-2" /> 载入分析图表...
@@ -386,12 +392,6 @@ const App: React.FC = () => {
                     isSyncing={!!syncProgress}
                   />
                 </Suspense>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <StatCard icon={<Star size={32} className="text-yellow-500" />} value={repos.length} label="Starred Repos" />
-                  <StatCard icon={<Code2 size={32} className="text-purple-500" />} value={languageStats.length} label="Different Languages" />
-                  <StatCard icon={<History size={32} className="text-blue-500" />} value={languageStats[0]?.name || '-'} label="Dominant Skill" />
-                </div>
               </motion.div>
             ) : (
               <motion.div

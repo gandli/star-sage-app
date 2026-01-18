@@ -51,20 +51,22 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
             .replace(/`(.+?)`/g, '$1') // Remove inline code
             .replace(/^\s*[-*+]\s+/gm, '') // Remove list bullets
             .replace(/<[^>]*>?/gm, '') // Remove HTML tags
-            .replace(/&[a-z]+;/g, '') // Remove HTML entities like &nbsp;
+            .replace(/&[a-z]+;/g, '') // Remove HTML entities
             .split('\n')
             .map(line => line.trim())
             .filter(line => line.length > 0);
 
-        // Filter out common badge lines or short non-sentence lines if possible (basic heuristic)
-        // Heuristic: skip lines that look like CI status or short labels
+        // Filter out common badge lines or short non-sentence lines
         const meaningfulLines = lines.filter(line => {
-            if (line.includes('Build Status') || line.includes('License') || line.length < 5) return false;
+            // Skip lines that look like CI status, badges, or are too short to be descriptive
+            if (line.includes('[!') || line.includes('build') || line.includes('license') || line.length < 10) return false;
+            // Skip lines that are just symbols
+            if (/^[#\s\-*+=!]+$/.test(line)) return false;
             return true;
         });
 
-        // Join the first few meaningful lines to form a paragraph
-        return meaningfulLines.slice(0, 3).join(' ').substring(0, 200);
+        // Join the first few meaningful lines
+        return meaningfulLines.slice(0, 3).join(' ').substring(0, 300);
     };
 
     const cardRef = React.useRef<HTMLDivElement>(null);
@@ -72,7 +74,6 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
 
     // Viewport Detection
     React.useEffect(() => {
-
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -88,17 +89,21 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
     }, []);
 
     React.useEffect(() => {
-        // 如果已有 description 或 readme_summary，不需要获取
-        if (repo.description || repo.readme_summary) {
-            if (repo.readme_summary) {
+        // Only fetch if description is actually missing or too short
+        const hasNoDesc = !repo.description || repo.description.length < 5;
+        const hasNoSummary = !repo.readme_summary && !readmeDesc;
+
+        if (!hasNoDesc && !hasNoSummary) {
+            if (repo.readme_summary && !readmeDesc) {
                 setReadmeDesc(repo.readme_summary);
             }
             return;
         }
 
+        if (!isVisible || !hasNoDesc) return;
+
         const getReadmeSummary = async () => {
             try {
-                // 只在没有 description 和 readme_summary 时才获取
                 setFetchingReadme(true);
                 const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
                 if (token) {
@@ -110,14 +115,20 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Github API returns content in base64
-                    const content = atob(data.content.replace(/\n/g, ''));
+
+                    // Correcting Base64 to UTF-8
+                    const binaryString = atob(data.content.replace(/\s/g, ''));
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const content = new TextDecoder('utf-8').decode(bytes);
+
                     const summary = cleanMarkdown(content);
 
                     if (summary) {
-                        const finalSummary = summary + (summary.length >= 200 ? '...' : '');
+                        const finalSummary = summary + (summary.length >= 300 ? '...' : '');
                         setReadmeDesc(finalSummary);
-                        // 【边获取边写入】保存到 gh_stars_data
                         await db.saveReadmeSummary(repo.id, finalSummary);
                     }
                 }
@@ -129,7 +140,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
         };
 
         getReadmeSummary();
-    }, [repo.id, repo.description, repo.readme_summary, repo.full_name]);
+    }, [repo.id, repo.description, repo.readme_summary, repo.full_name, isVisible, token]);
 
     // --- Auto Translate Logic ---
     React.useEffect(() => {
@@ -190,9 +201,9 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
 
 
     const currentDesc = repo.description || readmeDesc;
-    // Display Priority: Translated > English > "No project manifest"
+    const isSourceChinese = currentDesc ? /[\u4e00-\u9fa5]/.test(currentDesc) : false;
+    const isShowingChinese = !!translatedDesc || isSourceChinese;
     const displayDesc = translatedDesc || currentDesc || 'No project manifest found.';
-    const isShowingChinese = !!translatedDesc;
 
     return (
         <motion.div
@@ -205,17 +216,23 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
                 stiffness: 100,
                 damping: 15
             }}
-            className="group relative flex flex-col p-5 rounded-[2rem] premium-glass transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-500/10 content-visibility-auto overflow-hidden border-[var(--border-glass)] bg-[var(--bg-glass)] h-[340px]"
+            className="group relative flex flex-col p-5 rounded-[2rem] premium-glass transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-500/10 content-visibility-auto overflow-hidden border-[var(--border-glass)] bg-[var(--bg-glass)] h-[300px]"
         >
             {/* Subtle glow effect on hover */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <div className="relative z-10 flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                         <div className="relative group/avatar">
                             <img src={repo.owner.avatar_url} alt={`${repo.owner.login} avatar`} className="w-8 h-8 rounded-2xl ring-2 ring-black/5 dark:ring-white/10 group-hover/avatar:scale-110 transition-transform duration-300" />
-                            <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-black bg-green-500 shadow-sm" />
+                            {/* Status Dot: Green if translated/chinese, blue if syncing, gray otherwise */}
+                            <div className={cn(
+                                "absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-black transition-all duration-500 shadow-sm",
+                                isShowingChinese ? "bg-green-500 shadow-green-500/20" :
+                                    (fetchingReadme || translating) ? "bg-blue-500 animate-pulse shadow-blue-500/20" :
+                                        "bg-zinc-300 dark:bg-zinc-700"
+                            )} />
                         </div>
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-opacity duration-300">{repo.owner?.login || 'Unknown'}</span>
@@ -235,14 +252,14 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
                     </h3>
                 </a>
 
-                <div className="flex flex-col mb-4 flex-grow">
+                <div className="flex flex-col mb-3 flex-grow">
                     <p className={cn(
-                        "text-xs font-medium opacity-40 leading-relaxed transition-all duration-500 group-hover:opacity-70 line-clamp-5 h-[90px]",
-                        isShowingChinese && "opacity-100 text-blue-500/80 italic font-normal"
+                        "text-xs font-medium opacity-60 leading-relaxed transition-all duration-500 group-hover:opacity-90 line-clamp-4 h-[75px]",
+                        isShowingChinese && "opacity-90 dark:opacity-80 font-normal"
                     )}>
                         {fetchingReadme ? (
                             <span className="flex items-center gap-2 italic">
-                                <Loader2 size={12} className="animate-spin" /> Deep searching README...
+                                <Loader2 size={12} className="animate-spin" /> Deep searching...
                             </span>
                         ) : (
                             displayDesc
@@ -252,7 +269,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
 
                 {/* Topics section */}
                 {repo.topics && repo.topics.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4 h-[26px] overflow-hidden">
+                    <div className="flex flex-wrap gap-2 mb-3 h-[26px] overflow-hidden">
                         {repo.topics.slice(0, 4).map(topic => (
                             <span
                                 key={topic}
