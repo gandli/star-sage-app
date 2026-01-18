@@ -187,9 +187,9 @@ const App: React.FC = () => {
       setShowScrollTop(container.scrollTop > 300);
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [session]);
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({
@@ -478,10 +478,10 @@ const App: React.FC = () => {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
             onClick={scrollToTop}
-            className="fixed bottom-8 right-8 z-50 size-12 rounded-full bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl active:scale-95 transition-all duration-150 flex items-center justify-center"
+            className="fixed bottom-8 right-8 z-[100] size-12 rounded-2xl premium-glass text-blue-500 shadow-xl hover:-translate-y-1 active:scale-95 flex items-center justify-center group/top transition-all duration-300"
             aria-label="Scroll to top"
           >
-            <ArrowUp size={20} strokeWidth={2.5} />
+            <ArrowUp size={20} className="group-hover/top:scale-110 transition-transform duration-300" strokeWidth={2.5} />
           </motion.button>
         )}
       </AnimatePresence>
