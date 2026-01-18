@@ -189,13 +189,13 @@ export function useGithubSync(config: Config) {
                         };
                     });
 
-                    supabase.from('repos').upsert(minifiedData.map(r => ({
+                    supabase.from('repos').upsert(minifiedData.map((r: Repo) => ({
                         ...r,
                         description: data.find((d: any) => d.repo.id === r.id)?.repo.description
                     })), { onConflict: 'id' }).then(({ error }) => error && console.error('Supabase upsert failed:', error));
 
                     const newItems = isIncremental
-                        ? minifiedData.filter(item => !existingIds.has(item.id))
+                        ? minifiedData.filter((item: Repo) => !existingIds.has(item.id))
                         : minifiedData;
 
                     allFetchedRepos = [...allFetchedRepos, ...newItems];

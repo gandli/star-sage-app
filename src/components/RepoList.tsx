@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, ExternalLink, Loader2, BookOpen, ChevronRight } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import { cn } from '../utils/theme';
 import { db } from '../utils/db';
 import { translateText } from '../utils/translate';
@@ -178,7 +178,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index, token }) => {
             handleTranslate();
         }, 300 + (index % 5) * 100);
 
-        return () => setTimeout(() => clearTimeout(timer), 0);
+        return () => clearTimeout(timer);
     }, [isVisible, repo.description, readmeDesc, fetchingReadme, isTranslated, translating, translatedDesc, index]);
 
     const handleTranslate = async (e?: React.MouseEvent) => {
