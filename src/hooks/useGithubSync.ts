@@ -13,11 +13,23 @@ export function useGithubSync(config: Config) {
 
     // 跟踪上一次的配置，用于检测配置变化
     const lastConfigRef = useRef<Config | null>(null);
+    // 同步锁与 ID，用于任务管理
+    const syncLockRef = useRef(false);
+    const currentSyncIdRef = useRef(0);
     // 跟踪是否已经初始化
     const initializedRef = useRef(false);
 
     const fetchAllStars = useCallback(async (targetConfig: Config, isIncremental: boolean = false, startPage: number = 1) => {
         if (!targetConfig.value.trim()) return;
+
+        // 生成新任务 ID
+        const syncId = ++currentSyncIdRef.current;
+        syncLockRef.current = true;
+        setLoading(true);
+        setError(null);
+        setSyncProgress({ current: 0, total: 0 });
+
+        console.log(`[Sync] Starting task ${syncId} (Incremental: ${isIncremental}, Page: ${startPage})`);
 
         try {
             const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3.star+json' };
@@ -28,13 +40,20 @@ export function useGithubSync(config: Config) {
             const username = targetConfig.resolvedUsername || targetConfig.value;
 
             // --- 阶段 1: 轻量级探测 (Lightweight Probe) ---
-            // 如果是增量同步，先检查总数，如果匹配则直接退出
             if (isIncremental && startPage === 1) {
+                // ... (验证代码中是否需要 syncId 检查)
+                // 探测前检查一次
+                if (syncId !== currentSyncIdRef.current) return;
+
                 const probeUrl = targetConfig.type === 'username'
                     ? `https://api.github.com/users/${username}/starred?per_page=1`
                     : `https://api.github.com/user/starred?per_page=1`;
 
                 const probeRes = await fetch(probeUrl, { headers });
+
+                // 探测后检查一次
+                if (syncId !== currentSyncIdRef.current) return;
+
                 if (probeRes.ok) {
                     const linkHeader = probeRes.headers.get('Link');
                     let githubTotal = 0;
@@ -43,7 +62,6 @@ export function useGithubSync(config: Config) {
                         if (lastPageMatch) {
                             githubTotal = parseInt(lastPageMatch[1], 10);
                         } else {
-                            // 没有 last 链接说明只有一页，直接解析内容长度
                             const probeData = await probeRes.json();
                             githubTotal = probeData.length;
                         }
@@ -54,20 +72,18 @@ export function useGithubSync(config: Config) {
 
                     const existingRepos: Repo[] = await db.get('gh_stars_data') || [];
                     if (githubTotal > 0 && githubTotal === existingRepos.length) {
-                        console.log(`[Sync] Probe matched: ${githubTotal} stars. No sync needed.`);
+                        console.log(`[Sync] Task ${syncId} Probe matched: ${githubTotal}. Skipping.`);
                         localStorage.setItem('gh_stars_last_sync_time', Date.now().toString());
                         localStorage.setItem('gh_stars_total_count', githubTotal.toString());
-                        return; // 真正的“不执行同步动作”
+                        return;
                     }
                 }
             }
 
-            // --- 阶段 2: 正式开始同步 (Formal Sync) ---
-            setLoading(true);
-            setSyncProgress({ current: 0, total: 0 });
-            setError(null);
+            // --- 阶段 2: 正式同步 ---
+            if (syncId !== currentSyncIdRef.current) return;
 
-            // 如果是 Token 模式且还没解析过用户名，先解析一次
+            // 解析用户名
             let currentUsername = username;
             if (targetConfig.type === 'token' && !targetConfig.resolvedUsername) {
                 const userRes = await fetch('https://api.github.com/user', { headers });
@@ -83,7 +99,8 @@ export function useGithubSync(config: Config) {
                 }
             }
 
-            // 获取现有数据
+            if (syncId !== currentSyncIdRef.current) return;
+
             const existingRepos: Repo[] = await db.get('gh_stars_data') || [];
             const existingIds = new Set(existingRepos.map((r: Repo) => r.id));
 
@@ -94,6 +111,12 @@ export function useGithubSync(config: Config) {
             const syncStartTime = Date.now();
 
             while (hasMore && page <= MAX_PAGES) {
+                // 循环开始前检查 ID
+                if (syncId !== currentSyncIdRef.current) {
+                    console.log(`[Sync] Task ${syncId} aborted because a newer task has started.`);
+                    return;
+                }
+
                 const url = targetConfig.type === 'username'
                     ? `https://api.github.com/users/${currentUsername}/starred?per_page=100&page=${page}`
                     : `https://api.github.com/user/starred?per_page=100&page=${page}`;
@@ -106,7 +129,6 @@ export function useGithubSync(config: Config) {
                     throw new Error(`SYNC_FAILED_${response.status}`);
                 }
 
-                // 从 Link 头获取总页数，用于进度显示
                 if (page === 1) {
                     const linkHeader = response.headers.get('Link');
                     if (linkHeader) {
@@ -121,19 +143,21 @@ export function useGithubSync(config: Config) {
                 }
 
                 const data = await response.json();
+
+                // 数据获取后再次检查 ID，防止写入过期数据
+                if (syncId !== currentSyncIdRef.current) return;
+
                 if (data.length === 0) {
                     hasMore = false;
                 } else {
                     if (page === 1 && !actualStarCount) actualStarCount = data.length;
 
-                    // --- 映射与数据处理 (保持原有逻辑) ---
                     const existingMap = new Map(existingRepos.map((r: Repo) => [r.id, r]));
                     const idsToCheck = data.map((r: any) => r.repo.id).filter((id: number) => {
                         const existing = existingMap.get(id);
                         return !existing?.description_cn || !existing?.readme_summary;
                     });
 
-                    // 批量从 Supabase 获取译文
                     const supabaseTranslationMap = new Map<number, string>();
                     const supabaseReadmeMap = new Map<number, string>();
                     if (idsToCheck.length > 0) {
@@ -165,10 +189,9 @@ export function useGithubSync(config: Config) {
                         };
                     });
 
-                    // 异步保存到 Supabase
                     supabase.from('repos').upsert(minifiedData.map(r => ({
                         ...r,
-                        description: data.find((d: any) => d.repo.id === r.id)?.repo.description // 存英文原文
+                        description: data.find((d: any) => d.repo.id === r.id)?.repo.description
                     })), { onConflict: 'id' }).then(({ error }) => error && console.error('Supabase upsert failed:', error));
 
                     const newItems = isIncremental
@@ -177,28 +200,27 @@ export function useGithubSync(config: Config) {
 
                     allFetchedRepos = [...allFetchedRepos, ...newItems];
 
-                    // 判定是否结束
                     const localTotalNow = allFetchedRepos.length + existingRepos.length;
                     if ((isIncremental && localTotalNow >= actualStarCount && actualStarCount > 0) || data.length < 100) {
                         hasMore = false;
                     }
 
-                    // 阶段性保存
                     const currentMerged = isIncremental
                         ? [...allFetchedRepos, ...existingRepos.filter(r => !allFetchedRepos.some(nr => nr.id === r.id))]
                         : allFetchedRepos;
 
+                    // 写入数据库前最终检查 ID
+                    if (syncId !== currentSyncIdRef.current) return;
+
                     await db.set('gh_stars_data', currentMerged);
                     if (page % 2 === 0 || !hasMore) setRepos(currentMerged);
 
-                    // 进度条
                     const progress = Math.min(100, (currentMerged.length / (actualStarCount || currentMerged.length)) * 100);
                     setSyncProgress({
                         current: Math.round(progress === 100 && hasMore ? 99 : progress),
                         total: actualStarCount || currentMerged.length
                     });
 
-                    // 保存临时状态
                     localStorage.setItem('gh_stars_sync_state', JSON.stringify({
                         username: currentUsername,
                         configType: targetConfig.type,
@@ -212,9 +234,12 @@ export function useGithubSync(config: Config) {
                         status: 'in_progress'
                     }));
 
+                    console.log(`[Sync] Task ${syncId} Page ${page}: Saved ${currentMerged.length} repos`);
                     page++;
                 }
             }
+
+            if (syncId !== currentSyncIdRef.current) return;
 
             const finalRepos = (await db.get('gh_stars_data')) || repos;
             setRepos(finalRepos);
@@ -222,13 +247,19 @@ export function useGithubSync(config: Config) {
             localStorage.setItem('gh_stars_total_count', finalRepos.length.toString());
 
         } catch (err: any) {
-            setError(err.message);
+            if (syncId === currentSyncIdRef.current) {
+                setError(err.message);
+            }
         } finally {
-            setLoading(false);
-            setSyncProgress(null);
-            localStorage.removeItem('gh_stars_sync_state');
+            if (syncId === currentSyncIdRef.current) {
+                setLoading(false);
+                setSyncProgress(null);
+                localStorage.removeItem('gh_stars_sync_state');
+                syncLockRef.current = false;
+            }
         }
     }, [repos]);
+
 
 
     // 统一的初始化和配置变化处理逻辑
