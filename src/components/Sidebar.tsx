@@ -40,7 +40,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     onSignOut,
     profile,
     isOpen,
-    onClose
+    onClose,
+    theme,
+    setTheme
 }) => {
     const [collapsed, setCollapsed] = useState(() => {
         return localStorage.getItem('gh_stars_sidebar_collapsed') === 'true';
@@ -236,28 +238,26 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                     </div>
 
-                </div>
+                    {/* Theme Toggle in Sidebar (For Mobile/Expanded) */}
+                    {(theme && setTheme) && (
+                        <button
+                            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                            className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                        >
+                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                            {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+                        </button>
+                    )}
 
-                {/* Theme Toggle in Sidebar (For Mobile/Expanded) */}
-                {(theme && setTheme) && (
                     <button
-                        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                        className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                        onClick={onSignOut}
+                        className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
                     >
-                        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                        {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+                        <LogOut size={16} />
+                        {!collapsed && <span>Sign Out</span>}
                     </button>
-                )}
-
-                <button
-                    onClick={onSignOut}
-                    className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
-                >
-                    <LogOut size={16} />
-                    {!collapsed && <span>Sign Out</span>}
-                </button>
-            </div>
-        </aside >
+                </div>
+            </aside>
         </>
     );
 };

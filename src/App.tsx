@@ -339,6 +339,8 @@ const App: React.FC = () => {
         profile={profile}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
