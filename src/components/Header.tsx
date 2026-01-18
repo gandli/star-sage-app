@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, List as ListIcon, Moon, Sun, ShieldCheck, User, RefreshCw, Search, X, ChevronLeft, ChevronRight, SortDesc, SortAsc, Clock, Calendar, Star, Type, PanelLeft } from 'lucide-react';
+import { Moon, Sun, ShieldCheck, User, RefreshCw, Search, X, ChevronLeft, ChevronRight, SortDesc, SortAsc, Clock, Calendar, Star, Type, PanelLeft } from 'lucide-react';
 
 import type { Config } from '../types';
 import type { Profile } from '../hooks/useProfile';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, Suspense, lazy, useRef, useTransition } from 'react';
-import { Star, Code2, History, AlertCircle, X, Loader2, ArrowUp } from 'lucide-react';
+import { Star, Code2, History, AlertCircle, X, Loader2, ArrowUp, Languages } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -316,6 +316,15 @@ const App: React.FC = () => {
       .sort((a, b) => a.month.localeCompare(b.month));
   }, [repos]);
 
+  const translationStats = useMemo(() => {
+    const translatedCount = repos.filter(r =>
+      r.description_cn || (r.description && /[\u4e00-\u9fa5]/.test(r.description))
+    ).length;
+    const total = repos.length || 1;
+    const percentage = Math.round((translatedCount / total) * 100);
+    return { count: translatedCount, percentage };
+  }, [repos]);
+
   const saveConfig = () => {
     const configToSave = {
       ...tempConfig,
@@ -406,10 +415,15 @@ const App: React.FC = () => {
               >
 
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                   <StatCard icon={<Star size={32} className="text-yellow-500" />} value={repos.length} label="Starred Repos" />
                   <StatCard icon={<Code2 size={32} className="text-purple-500" />} value={languageStats.length} label="Different Languages" />
                   <StatCard icon={<History size={32} className="text-blue-500" />} value={languageStats[0]?.name || '-'} label="Dominant Skill" />
+                  <StatCard
+                    icon={<Languages size={32} className="text-green-500" />}
+                    value={`${translationStats.percentage}%`}
+                    label={`ZH/CN: ${translationStats.count} Projects`}
+                  />
                 </div>
 
                 <Suspense fallback={
