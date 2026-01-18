@@ -27,6 +27,7 @@
         --glass-blur: blur(16px);
         --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
         --color-scheme: light;
+        transition: background-color 0.5s var(--transition-timing), color 0.5s var(--transition-timing), border-color 0.5s var(--transition-timing);
     }
 
     [data-theme='dark'] {
@@ -46,6 +47,7 @@
 
     html {
         color-scheme: var(--color-scheme);
+        transition: background-color 0.5s var(--transition-timing);
     }
 
     /* 动画可访问性 - 尊重用户的运动偏好 */
@@ -64,6 +66,9 @@
     body {
         @apply font-inter antialiased;
         text-rendering: optimizeLegibility;
+        background-color: var(--bg-main);
+        color: var(--text-primary);
+        transition: background-color 0.5s var(--transition-timing), color 0.5s var(--transition-timing);
     }
 
     /* 防止横向滚动 */
@@ -110,7 +115,7 @@
         border-color: var(--border-glass);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
             0 0 1px rgba(255, 255, 255, 0.1) inset;
-        transition: background-color 0.3s var(--transition-timing), border-color 0.3s var(--transition-timing), transform 0.5s var(--transition-timing), box-shadow 0.5s var(--transition-timing);
+        transition: background-color 0.5s var(--transition-timing), border-color 0.5s var(--transition-timing), transform 0.5s var(--transition-timing), box-shadow 0.5s var(--transition-timing);
     }
 
     /* Ambient background lights */
@@ -173,7 +178,7 @@
         width: 0;
         height: 0;
     }
-    
+
     main {
         padding-bottom: 80px;
     }
