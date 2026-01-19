@@ -80,7 +80,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             >
                 <div className={`relative group/sidebar-header transition-all duration-300 ${collapsed ? 'h-24 flex items-center justify-center' : 'h-20 px-6 flex items-center justify-between'}`}>
-                    <div className={cn("flex items-center gap-3 transition-all duration-300", collapsed ? "absolute inset-0 flex items-center justify-center" : "")}>
+                    <div
+                        onClick={() => {
+                            setActiveView('overview');
+                            setSelectedLanguage(null);
+                            setCurrentPage(1);
+                        }}
+                        className={cn("flex items-center gap-3 transition-all duration-300 cursor-pointer", collapsed ? "absolute inset-0 flex items-center justify-center" : "")}
+                    >
                         <img
                             src={logo}
                             alt="Logo"

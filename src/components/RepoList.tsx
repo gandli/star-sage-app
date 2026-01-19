@@ -158,7 +158,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
         <GlassCard
             ref={cardRef}
             delay={(index % 12) * 0.04}
-            className="group relative flex flex-col content-visibility-auto overflow-hidden min-h-[180px] w-full"
+            className="group relative flex flex-col content-visibility-auto overflow-hidden min-h-[180px] w-full cursor-default"
         >
             <div className="relative z-10 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
