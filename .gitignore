@@ -1,0 +1,84 @@
+# ========================
+# 构建输出和依赖目录
+# ========================
+/dist
+/dist-ssr
+/node_modules
+/bun.lockb
+
+# ========================
+# 日志文件
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ========================
+# 环境变量和配置文件
+# ========================
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.production
+
+# ========================
+# 操作系统和编辑器文件
+# ========================
+.DS_Store
+*.swp
+*.swo
+*~
+~$*
+
+# ========================
+# IDE 配置文件
+# ========================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ========================
+# 包管理器和锁文件
+# ========================
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+*.lock
+
+# ========================
+# 运行时和缓存文件
+# ========================
+.cache/
+.temp/
+*.local
+*.tmp
+
+# ========================
+# AI 助手缓存目录
+# ========================
+.agent/
+.claude/
+.codex/
+.gemini/
+.opencode/
+.windsurf/
+
+# ========================
+# 技能/插件目录（可配置）
+# ========================
+*/skills
+!skills/README.md
+!skills/example.js
