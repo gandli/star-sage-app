@@ -56,15 +56,17 @@ class DatabaseService {
         const tx = db.transaction('repos', 'readwrite');
         const store = tx.objectStore('repos');
 
-        for (const repo of repos) {
-            const existing = await store.get(repo.id);
-            await store.put({
+        const existingRecords = await Promise.all(repos.map(repo => store.get(repo.id)));
+
+        await Promise.all(repos.map((repo, index) => {
+            const existing = existingRecords[index];
+            return store.put({
                 ...existing,
                 ...repo,
                 sync_status: repo.sync_status || 'pending',
                 last_updated: Date.now()
             });
-        }
+        }));
         await tx.done;
     }
 
