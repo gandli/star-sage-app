@@ -109,7 +109,7 @@ class DatabaseService {
         const db = await this.dbPromise;
         const tx = db.transaction(['repos', 'translations'], 'readwrite');
 
-        for (const { repoId, translation } of translations) {
+        await Promise.all(translations.map(async ({ repoId, translation }) => {
             // 1. Update primary repo record
             const repo = await tx.objectStore('repos').get(repoId);
             if (repo) {
@@ -120,7 +120,7 @@ class DatabaseService {
 
             // 2. Update simple lookup cache
             await tx.objectStore('translations').put(translation, repoId);
-        }
+        }));
 
         await tx.done;
     }
