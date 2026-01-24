@@ -423,8 +423,15 @@ self.onmessage = (e) => {
             runCloudSync();
             break;
         case 'CALCULATE_STATS':
-            db.getLanguageStats().then(stats => {
-                notify('STATS_CALCULATED', { stats, requestId: payload?.requestId });
+            Promise.all([
+                db.getLanguageStats(),
+                db.getTopicStats(),
+                db.getTrendStats()
+            ]).then(([languageStats, topicStats, trendStats]) => {
+                notify('STATS_CALCULATED', {
+                    stats: { languageStats, topicStats, trendStats },
+                    requestId: payload?.requestId
+                });
             });
             break;
         case 'FETCH_README':

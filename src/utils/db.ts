@@ -268,6 +268,48 @@ class DatabaseService {
             .sort((a, b) => b.value - a.value);
     }
 
+    async getTopicStats(): Promise<{ name: string; value: number }[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('repos', 'readonly');
+        const stats: Record<string, number> = {};
+
+        let cursor = await tx.store.openCursor();
+        while (cursor) {
+            const topics = cursor.value.topics;
+            if (topics && Array.isArray(topics)) {
+                topics.forEach(topic => {
+                    stats[topic] = (stats[topic] || 0) + 1;
+                });
+            }
+            cursor = await cursor.continue();
+        }
+
+        return Object.entries(stats)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+    }
+
+    async getTrendStats(): Promise<{ month: string; count: number }[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('repos', 'readonly');
+        const trends: Record<string, number> = {};
+
+        let cursor = await tx.store.openCursor();
+        while (cursor) {
+            const starredAt = cursor.value.starred_at;
+            if (starredAt) {
+                const month = starredAt.substring(0, 7);
+                trends[month] = (trends[month] || 0) + 1;
+            }
+            cursor = await cursor.continue();
+        }
+
+        return Object.entries(trends)
+            .map(([month, count]) => ({ month, count }))
+            .sort((a, b) => a.month.localeCompare(b.month));
+    }
+
     // --- Readme Operations ---
     async saveReadmeSummary(repoId: number, summary: string): Promise<void> {
         const db = await this.dbPromise;

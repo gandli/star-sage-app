@@ -8,6 +8,8 @@ export function useGithubSync(config: Config) {
     const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [languageStats, setLanguageStats] = useState<{ name: string; value: number }[]>([]);
+    const [topicStats, setTopicStats] = useState<{ name: string; value: number }[]>([]);
+    const [trendStats, setTrendStats] = useState<{ month: string; count: number }[]>([]);
 
     // Subscribe to service state
     useEffect(() => {
@@ -17,6 +19,8 @@ export function useGithubSync(config: Config) {
             setSyncProgress(state.syncProgress);
             setError(state.error);
             setLanguageStats(state.stats.languageStats || []);
+            setTopicStats(state.stats.topicStats || []);
+            setTrendStats(state.stats.trendStats || []);
         });
         return unsubscribe;
     }, []);
@@ -39,5 +43,5 @@ export function useGithubSync(config: Config) {
         }
     }, [config]);
 
-    return { repos, loading, syncProgress, error, setError, fetchAllStars, languageStats };
+    return { repos, loading, syncProgress, error, setError, fetchAllStars, languageStats, topicStats, trendStats };
 }
