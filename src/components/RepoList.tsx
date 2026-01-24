@@ -4,6 +4,7 @@ import { Star, Loader2 } from 'lucide-react';
 import { cn } from '../utils/theme';
 import { db } from '../utils/db';
 import { translateText } from '../utils/translate';
+import { repoCardObserver } from '../utils/sharedObserver';
 import { starService } from '../services/StarDataService';
 import { GlassCard } from './GlassCard';
 import { LanguageIcon } from './LanguageIcon';
@@ -95,19 +96,19 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
     const [isVisible, setIsVisible] = React.useState(false);
 
     React.useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setIsVisible(true);
-                    observer.disconnect();
-                }
-            },
-            { threshold: 0.1 }
-        );
+        const element = cardRef.current;
+        if (!element || isVisible) return;
 
-        if (cardRef.current) observer.observe(cardRef.current);
-        return () => observer.disconnect();
-    }, []);
+        const callback = (entry: IntersectionObserverEntry) => {
+            if (entry.isIntersecting) {
+                setIsVisible(true);
+                repoCardObserver.unobserve(element);
+            }
+        };
+
+        repoCardObserver.observe(element, callback);
+        return () => repoCardObserver.unobserve(element);
+    }, [isVisible]);
 
     React.useEffect(() => {
         const hasNoDesc = !repo.description || repo.description.length < 5;
