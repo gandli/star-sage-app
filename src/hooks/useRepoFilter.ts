@@ -4,6 +4,8 @@ import type { Repo } from '../types';
 interface UseRepoFilterProps {
     repos: Repo[];
     languageStats?: { name: string; value: number }[];
+    topicStats?: { name: string; value: number }[];
+    trendStats?: { month: string; count: number }[];
     searchQuery: string;
     selectedLanguage: string | null;
     sortOrder: 'starred_at' | 'updated_at' | 'stargazers_count' | 'name';
@@ -16,6 +18,8 @@ interface UseRepoFilterProps {
 export function useRepoFilter({
     repos,
     languageStats: providedStats,
+    topicStats: providedTopicStats,
+    trendStats: providedTrendStats,
     searchQuery,
     selectedLanguage,
     sortOrder,
@@ -54,20 +58,26 @@ export function useRepoFilter({
 
     const sortedRepos = useMemo(() => {
         return [...searchedRepos].sort((a, b) => {
+            // Special handling for dates
+            if (sortOrder === 'starred_at' || sortOrder === 'updated_at') {
+                const dateA = a[sortOrder as 'starred_at' | 'updated_at'];
+                const dateB = b[sortOrder as 'starred_at' | 'updated_at'];
+
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+
+                if (dateA < dateB) return sortDirection === 'asc' ? -1 : 1;
+                if (dateA > dateB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            }
+
             let valA = a[sortOrder as keyof typeof a];
             let valB = b[sortOrder as keyof typeof b];
 
             // Handle missing values
             if (valA === undefined || valA === null) valA = '';
             if (valB === undefined || valB === null) valB = '';
-
-            // Special handling for dates
-            if (sortOrder === 'starred_at' || sortOrder === 'updated_at') {
-                const dateA = a[sortOrder as 'starred_at' | 'updated_at'];
-                const dateB = b[sortOrder as 'starred_at' | 'updated_at'];
-                valA = dateA ? new Date(dateA).getTime() : 0;
-                valB = dateB ? new Date(dateB).getTime() : 0;
-            }
 
             if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
             if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
@@ -95,6 +105,7 @@ export function useRepoFilter({
     }, [languageStats]);
 
     const hotTopics = useMemo(() => {
+        if (providedTopicStats && providedTopicStats.length > 0) return providedTopicStats;
         const topicCounts: Record<string, number> = {};
         repos.forEach(repo => {
             repo.topics?.forEach(topic => {
@@ -105,9 +116,10 @@ export function useRepoFilter({
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 10);
-    }, [repos]);
+    }, [repos, providedTopicStats]);
 
     const starTrends = useMemo(() => {
+        if (providedTrendStats && providedTrendStats.length > 0) return providedTrendStats;
         const trends: Record<string, number> = {};
         repos.forEach(repo => {
             if (repo.starred_at) {
@@ -119,7 +131,7 @@ export function useRepoFilter({
         return Object.entries(trends)
             .map(([month, count]) => ({ month, count }))
             .sort((a, b) => a.month.localeCompare(b.month));
-    }, [repos]);
+    }, [repos, providedTrendStats]);
 
     return {
         languageStats,
