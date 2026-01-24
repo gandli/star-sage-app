@@ -26,11 +26,15 @@ export function useGithubSync(config: Config) {
         }
     }, [config]);
 
-    const fetchAllStars = useCallback((_config: Config, isIncremental: boolean = false, startPage: number = 1) => {
+    const fetchAllStars = useCallback((passedConfig: Config, isIncremental: boolean = false, startPage: number = 1) => {
         // Trigger manual sync via service
-        // Ignoring config arg here as service tracks current config, 
-        // but robustly strictly we should use the passed config if it matches current.
-        starService.sync(config, isIncremental, startPage);
+        // If passed config matches current hook config (by type and value), use passed one as it might be fresher (e.g. resolvedUsername)
+        if (passedConfig.type === config.type && passedConfig.value === config.value) {
+            starService.sync(passedConfig, isIncremental, startPage);
+        } else {
+            // Fallback to hook's config if mismatch
+            starService.sync(config, isIncremental, startPage);
+        }
     }, [config]);
 
     return { repos, loading, syncProgress, error, setError, fetchAllStars };
