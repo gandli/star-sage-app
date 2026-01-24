@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Star, Loader2 } from 'lucide-react';
 import { cn } from '../utils/theme';
 import { db } from '../utils/db';
-import { translateText } from '../utils/translate';
+import { translationBatcher } from '../utils/translationBatcher';
 import { starService } from '../services/StarDataService';
 import { GlassCard } from './GlassCard';
 import { LanguageIcon } from './LanguageIcon';
@@ -61,12 +61,10 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
                 return;
             }
 
-            const translated = await translateText(textToTranslate);
-            if (translated && translated.length > 0) {
-                const result = translated[0];
+            const result = await translationBatcher.enqueue(repo.id, textToTranslate);
+            if (result) {
                 setTranslatedDesc(result);
                 setIsTranslated(true);
-                await db.saveTranslation(repo.id, result);
             }
         } catch (error) {
             console.error('Translation failed:', error);
