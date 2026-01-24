@@ -29,7 +29,9 @@ describe('translateText Performance', () => {
         // Mock Supabase select (cache miss)
         const selectMock = vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnThis(),
+            in: vi.fn().mockReturnThis(), // Added for batching support
             single: vi.fn().mockResolvedValue({ data: null }),
+            then: (resolve: any) => resolve({ data: [] }), // Added for batching await support
         });
 
         // Mock Supabase upsert with delay
