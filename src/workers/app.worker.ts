@@ -388,7 +388,14 @@ self.onmessage = (e) => {
             runCloudSync();
             break;
         case 'FETCH_README':
-            if (payload.repo) fetchAndSummarizeReadme(payload.repo).then(() => notify('DATA_CHANGED'));
+            if (payload.repo) {
+                fetchAndSummarizeReadme(payload.repo).then((summary) => {
+                    if (payload.requestId) {
+                        notify('README_FETCHED', { requestId: payload.requestId, repoId: payload.repo.id, summary });
+                    }
+                    notify('DATA_CHANGED');
+                });
+            }
             break;
         case 'STOP':
             isEnabled = false;

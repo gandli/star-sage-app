@@ -32,6 +32,7 @@ class StarDataService {
     private listeners: Set<Listener> = new Set();
     private worker: Worker | null = null;
     private initialized = false;
+    private pendingReadmeRequests = new Map<number, (summary: string | null) => void>();
 
     constructor() {
         this.initWorker();
@@ -77,14 +78,12 @@ class StarDataService {
                             localStorage.setItem('gh_stars_config', JSON.stringify(newConfig));
                         }
                         break;
-                    case 'NEED_README':
-                        // Still handle README fetch in main thread if desired, 
-                        // OR we can move fetch() to worker but summarize there too.
-                        // For now, let's try to keep the worker fully independent 
-                        // by having it fetch the README itself (I already added fetch in worker plan).
-                        // Wait, I didn't actually implement README fetch in the worker's logic yet.
-                        // Let's add it to the worker later or handle it here.
-                        // Actually, I'll move fetchAndSummarizeReadme to the worker.
+                    case 'README_FETCHED':
+                        const { requestId, summary } = payload;
+                        if (requestId && this.pendingReadmeRequests.has(requestId)) {
+                            this.pendingReadmeRequests.get(requestId)!(summary);
+                            this.pendingReadmeRequests.delete(requestId);
+                        }
                         break;
                 }
             };
@@ -179,8 +178,24 @@ class StarDataService {
     }
 
     public async fetchAndSummarizeReadme(repo: Repo): Promise<string | null> {
-        this.worker?.postMessage({ type: 'FETCH_README', payload: { repo } });
-        return null; // The update will come via DATA_CHANGED event
+        return new Promise((resolve) => {
+            if (!this.worker) {
+                resolve(null);
+                return;
+            }
+
+            const requestId = Date.now() + Math.random();
+            this.pendingReadmeRequests.set(requestId, resolve);
+            this.worker.postMessage({ type: 'FETCH_README', payload: { repo, requestId } });
+
+            // Timeout safety to prevent memory leaks
+            setTimeout(() => {
+                if (this.pendingReadmeRequests.has(requestId)) {
+                    this.pendingReadmeRequests.delete(requestId);
+                    resolve(null);
+                }
+            }, 60000);
+        });
     }
 
     public triggerBackgroundCloudSync() {
