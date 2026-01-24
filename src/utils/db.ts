@@ -77,10 +77,18 @@ class DatabaseService {
 
     async getUntranslatedRepos(limit: number = 50): Promise<Repo[]> {
         const db = await this.dbPromise;
-        const repos = await db.getAll('repos');
-        return repos
-            .filter(r => r.description_cn === null || r.description_cn === undefined)
-            .slice(0, limit);
+        const tx = db.transaction('repos', 'readonly');
+        const results: Repo[] = [];
+        let cursor = await tx.store.openCursor();
+
+        while (cursor && results.length < limit) {
+            const r = cursor.value;
+            if (r.description_cn === null || r.description_cn === undefined) {
+                results.push(r);
+            }
+            cursor = await cursor.continue();
+        }
+        return results;
     }
 
     async getRepo(id: number): Promise<Repo | undefined> {
