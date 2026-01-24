@@ -189,10 +189,23 @@ class DatabaseService {
 
     async getStats(): Promise<{ total: number; translated: number }> {
         const db = await this.dbPromise;
-        const repos = await db.getAll('repos');
+        const total = await db.count('repos');
+
+        let translated = 0;
+        const tx = db.transaction('repos', 'readonly');
+        let cursor = await tx.store.openCursor();
+
+        while (cursor) {
+            const r = cursor.value;
+            if (r.description_cn !== null && r.description_cn !== undefined) {
+                translated++;
+            }
+            cursor = await cursor.continue();
+        }
+
         return {
-            total: repos.length,
-            translated: repos.filter(r => r.description_cn !== null && r.description_cn !== undefined).length
+            total,
+            translated
         };
     }
 
