@@ -40,7 +40,8 @@ vi.mock('../services/StarDataService', () => ({
                  repos: [],
                  loading: false,
                  syncProgress: null,
-                 error: null
+                 error: null,
+                 stats: { total: 0, translated: 0, githubTotal: 0 }
              });
              return vi.fn();
         }),

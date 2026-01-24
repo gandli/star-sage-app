@@ -3,6 +3,7 @@ import type { Repo } from '../types';
 
 interface UseRepoFilterProps {
     repos: Repo[];
+    languageStats?: { name: string; value: number }[];
     searchQuery: string;
     selectedLanguage: string | null;
     sortOrder: 'starred_at' | 'updated_at' | 'stargazers_count' | 'name';
@@ -14,6 +15,7 @@ interface UseRepoFilterProps {
 
 export function useRepoFilter({
     repos,
+    languageStats: providedStats,
     searchQuery,
     selectedLanguage,
     sortOrder,
@@ -24,6 +26,7 @@ export function useRepoFilter({
 }: UseRepoFilterProps) {
 
     const languageStats = useMemo(() => {
+        if (providedStats && providedStats.length > 0) return providedStats;
         const stats: Record<string, number> = {};
         repos.forEach(repo => {
             const lang = repo.language || 'Unknown';
@@ -32,7 +35,7 @@ export function useRepoFilter({
         return Object.entries(stats)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
-    }, [repos]);
+    }, [repos, providedStats]);
 
     const filteredRepos = useMemo(() => {
         if (!selectedLanguage) return repos;

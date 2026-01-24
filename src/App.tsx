@@ -47,7 +47,7 @@ const App: React.FC = () => {
 
   // --- Data Loading ---
   const isMounted = useRef(false);
-  const { repos, loading, syncProgress, error, setError, fetchAllStars } = useGithubSync(config);
+  const { repos, loading, syncProgress, error, setError, fetchAllStars, languageStats } = useGithubSync(config);
 
   // --- Mobile & Grid ---
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -75,6 +75,7 @@ const App: React.FC = () => {
   // --- Filter Logic ---
   const repoFilter = useRepoFilter({
     repos,
+    languageStats,
     searchQuery,
     selectedLanguage,
     sortOrder,

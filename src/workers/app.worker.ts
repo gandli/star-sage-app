@@ -422,6 +422,11 @@ self.onmessage = (e) => {
         case 'TRIGGER_CLOUD_SYNC':
             runCloudSync();
             break;
+        case 'CALCULATE_STATS':
+            db.getLanguageStats().then(stats => {
+                notify('STATS_CALCULATED', { stats, requestId: payload?.requestId });
+            });
+            break;
         case 'FETCH_README':
             if (payload.repo) {
                 fetchAndSummarizeReadme(payload.repo).then((summary) => {
