@@ -42,4 +42,59 @@ describe('DatabaseService', () => {
             expect(result).toHaveLength(5);
         });
     });
+
+    describe('upsertRepos', () => {
+        it('should handle empty list', async () => {
+            await db.upsertRepos([]);
+            const result = await db.getAllRepos();
+            expect(result).toHaveLength(0);
+        });
+
+        it('should insert new repos', async () => {
+            const repos = [{ id: 1, name: 'r1' } as Repo, { id: 2, name: 'r2' } as Repo];
+            await db.upsertRepos(repos);
+            const result = await db.getAllRepos();
+            expect(result).toHaveLength(2);
+            expect(result.map(r => r.id).sort((a, b) => a - b)).toEqual([1, 2]);
+        });
+
+        it('should update existing repos', async () => {
+            await db.upsertRepos([{ id: 1, name: 'r1', description_cn: 'old' } as Repo]);
+            await db.upsertRepos([{ id: 1, name: 'r1_updated' } as Repo]);
+            const result = await db.getRepo(1);
+            expect(result?.name).toBe('r1_updated');
+            expect(result?.description_cn).toBe('old'); // Should preserve existing fields
+        });
+
+        it('should handle interleaving of existing and new', async () => {
+            // Setup: 1, 3 exist
+            await db.upsertRepos([{ id: 1 } as Repo, { id: 3 } as Repo]);
+
+            // Upsert: 1 (update), 2 (new), 3 (update), 4 (new)
+            await db.upsertRepos([
+                { id: 1, name: 'u1' } as Repo,
+                { id: 2, name: 'n2' } as Repo,
+                { id: 3, name: 'u3' } as Repo,
+                { id: 4, name: 'n4' } as Repo
+            ]);
+
+            const all = await db.getAllRepos();
+            expect(all).toHaveLength(4);
+            const r1 = await db.getRepo(1);
+            expect(r1?.name).toBe('u1');
+            const r2 = await db.getRepo(2);
+            expect(r2?.name).toBe('n2');
+        });
+
+        it('should handle unsorted input', async () => {
+            await db.upsertRepos([
+                { id: 3, name: 'r3' } as Repo,
+                { id: 1, name: 'r1' } as Repo,
+                { id: 2, name: 'r2' } as Repo
+            ]);
+            const all = await db.getAllRepos();
+            expect(all).toHaveLength(3);
+            expect(all.map(r => r.id).sort((a, b) => a - b)).toEqual([1, 2, 3]);
+        });
+    });
 });
