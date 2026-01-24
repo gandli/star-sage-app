@@ -13,6 +13,7 @@ interface StarDataState {
         total: number;
         translated: number;
         githubTotal: number;
+        languageStats?: { name: string; value: number }[];
     };
     config: Config | null;
     isTranslating: boolean;
@@ -33,6 +34,7 @@ class StarDataService {
     private worker: Worker | null = null;
     private initialized = false;
     private pendingReadmeRequests = new Map<number, (summary: string | null) => void>();
+    private pendingStatsRequests = new Map<number, (stats: any) => void>();
 
     constructor() {
         this.initWorker();
@@ -85,6 +87,22 @@ class StarDataService {
                             this.pendingReadmeRequests.delete(requestId);
                         }
                         break;
+                    case 'CLOUD_SYNC_COMPLETED':
+                        await this.refreshFromLocal();
+                        break;
+                    case 'STATS_CALCULATED':
+                        if (payload.requestId && this.pendingStatsRequests.has(payload.requestId)) {
+                            this.pendingStatsRequests.get(payload.requestId)!(payload.stats);
+                            this.pendingStatsRequests.delete(payload.requestId);
+                        } else {
+                            this.updateState({
+                                stats: {
+                                    ...this.state.stats,
+                                    languageStats: payload.stats
+                                }
+                            });
+                        }
+                        break;
                 }
             };
         }
@@ -115,6 +133,26 @@ class StarDataService {
         this.state.stats.total = total;
         this.state.stats.translated = translated;
         this.listeners.forEach(l => l({ ...this.state }));
+    }
+
+    public async calculateLanguageStats(): Promise<any> {
+        return new Promise((resolve) => {
+            if (!this.worker) {
+                resolve([]);
+                return;
+            }
+
+            const requestId = Date.now() + Math.random();
+            this.pendingStatsRequests.set(requestId, resolve);
+            this.worker.postMessage({ type: 'CALCULATE_STATS', payload: { requestId } });
+
+            setTimeout(() => {
+                if (this.pendingStatsRequests.has(requestId)) {
+                    this.pendingStatsRequests.delete(requestId);
+                    resolve([]);
+                }
+            }, 10000);
+        });
     }
 
     public async initialize(config: Config) {
@@ -213,7 +251,13 @@ class StarDataService {
 
     public async refreshFromLocal() {
         const localData = await db.getAllRepos();
-        this.updateState({ repos: localData });
+        // Fetch stats in parallel if possible, but we wait to update state atomically
+        // to prevent race conditions where repos are large but stats are missing.
+        const stats = await this.calculateLanguageStats();
+        this.updateState({
+            repos: localData,
+            stats: { ...this.state.stats, languageStats: stats }
+        });
     }
 
     public getState() {

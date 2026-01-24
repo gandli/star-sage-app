@@ -7,6 +7,7 @@ export function useGithubSync(config: Config) {
     const [loading, setLoading] = useState(false);
     const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [languageStats, setLanguageStats] = useState<{ name: string; value: number }[]>([]);
 
     // Subscribe to service state
     useEffect(() => {
@@ -15,6 +16,7 @@ export function useGithubSync(config: Config) {
             setLoading(state.loading);
             setSyncProgress(state.syncProgress);
             setError(state.error);
+            setLanguageStats(state.stats.languageStats || []);
         });
         return unsubscribe;
     }, []);
@@ -37,5 +39,5 @@ export function useGithubSync(config: Config) {
         }
     }, [config]);
 
-    return { repos, loading, syncProgress, error, setError, fetchAllStars };
+    return { repos, loading, syncProgress, error, setError, fetchAllStars, languageStats };
 }
