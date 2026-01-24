@@ -56,7 +56,7 @@ class DatabaseService {
         const tx = db.transaction('repos', 'readwrite');
         const store = tx.objectStore('repos');
 
-        for (const repo of repos) {
+        await Promise.all(repos.map(async (repo) => {
             const existing = await store.get(repo.id);
             await store.put({
                 ...existing,
@@ -64,7 +64,8 @@ class DatabaseService {
                 sync_status: repo.sync_status || 'pending',
                 last_updated: Date.now()
             });
-        }
+        }));
+
         await tx.done;
     }
 
