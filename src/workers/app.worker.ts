@@ -315,8 +315,7 @@ async function runCloudSync() {
     isSyncingCloud = true;
 
     try {
-        const allRepos = await db.getAllRepos();
-        const pending = allRepos.filter(r => r.sync_status === 'pending');
+        const pending = await db.getPendingSyncRepos(50);
         if (pending.length === 0) return;
 
         const { data: { user } } = await supabase.auth.getUser();

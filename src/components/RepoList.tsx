@@ -35,7 +35,28 @@ interface RepoCardProps {
     token?: string;
 }
 
-const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
+const arePropsEqual = (prev: RepoCardProps, next: RepoCardProps) => {
+    const p = prev.repo;
+    const n = next.repo;
+    return (
+        prev.index === next.index &&
+        prev.token === next.token &&
+        p.id === n.id &&
+        p.updated_at === n.updated_at &&
+        p.stargazers_count === n.stargazers_count &&
+        p.description === n.description &&
+        p.description_cn === n.description_cn &&
+        p.readme_summary === n.readme_summary &&
+        p.sync_status === n.sync_status &&
+        p.language === n.language &&
+        p.owner.login === n.owner.login &&
+        p.owner.avatar_url === n.owner.avatar_url &&
+        (p.topics || []).length === (n.topics || []).length &&
+        (p.topics || []).join(',') === (n.topics || []).join(',')
+    );
+};
+
+const RepoCard = React.memo(({ repo, index }: RepoCardProps) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
     const [translating, setTranslating] = React.useState(false);
@@ -257,7 +278,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
             </div>
         </GlassCard>
     );
-};
+}, arePropsEqual);
 
 interface RepoListProps {
     repos: Repo[];

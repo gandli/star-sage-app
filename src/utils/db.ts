@@ -75,6 +75,11 @@ class DatabaseService {
         return db.getAll('repos');
     }
 
+    async getPendingSyncRepos(limit: number = 50): Promise<Repo[]> {
+        const db = await this.dbPromise;
+        return db.getAllFromIndex('repos', 'by-sync', 'pending', limit);
+    }
+
     async getUntranslatedRepos(limit: number = 50): Promise<Repo[]> {
         const db = await this.dbPromise;
         const tx = db.transaction('repos', 'readonly');

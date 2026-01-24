@@ -11,6 +11,38 @@ describe('DatabaseService', () => {
         await db.clearAllData();
     });
 
+    describe('getPendingSyncRepos', () => {
+        it('should return only pending repos', async () => {
+            const repos: Repo[] = [
+                { id: 1, name: 'r1', full_name: 'u/r1', sync_status: 'synced' } as Repo,
+                { id: 2, name: 'r2', full_name: 'u/r2', sync_status: 'pending' } as Repo,
+                { id: 3, name: 'r3', full_name: 'u/r3', sync_status: 'pending' } as Repo,
+                { id: 4, name: 'r4', full_name: 'u/r4', sync_status: 'synced' } as Repo,
+            ];
+            await db.upsertRepos(repos);
+
+            const result = await db.getPendingSyncRepos();
+            expect(result).toHaveLength(2);
+            expect(result.map(r => r.id).sort()).toEqual([2, 3]);
+        });
+
+        it('should respect limit', async () => {
+            const repos: Repo[] = [];
+            for (let i = 0; i < 10; i++) {
+                repos.push({
+                    id: i,
+                    name: `r${i}`,
+                    full_name: `u/r${i}`,
+                    sync_status: 'pending'
+                } as Repo);
+            }
+            await db.upsertRepos(repos);
+
+            const result = await db.getPendingSyncRepos(5);
+            expect(result).toHaveLength(5);
+        });
+    });
+
     describe('getUntranslatedRepos', () => {
         it('should return only untranslated repos', async () => {
             const repos: Repo[] = [
