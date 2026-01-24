@@ -76,51 +76,65 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
 
         notify('SYNC_TOTAL', { total: remoteTotal });
 
-        let hasMore = true;
         let processedCount = 0;
+        const totalPages = Math.ceil(remoteTotal / 100);
+        const CONCURRENCY = 5;
 
-        while (hasMore && page <= 100) {
+        // If totalPages is 0, we can skip
+        if (totalPages === 0) {
+             await db.setSyncCheckpoint(configId, null);
+        }
+
+        for (let i = page; i <= totalPages && i <= 100; i += CONCURRENCY) {
             if (syncId !== currentSyncId) return;
 
-            const url = config.type === 'username'
-                ? `https://api.github.com/users/${username}/starred?per_page=100&page=${page}`
-                : `https://api.github.com/user/starred?per_page=100&page=${page}`;
-
-            const res = await fetch(url, { headers });
-            if (!res.ok) throw new Error(`GitHub API Error: ${res.status}`);
-
-            const data = await res.json();
-            if (data.length === 0) {
-                hasMore = false;
-                break;
+            const batchPages: number[] = [];
+            for (let j = 0; j < CONCURRENCY && (i + j) <= totalPages && (i + j) <= 100; j++) {
+                batchPages.push(i + j);
             }
 
-            const processed = data.map((item: any) => ({
-                id: item.repo.id,
-                name: item.repo.name,
-                full_name: item.repo.full_name,
-                html_url: item.repo.html_url,
-                stargazers_count: item.repo.stargazers_count,
-                updated_at: item.repo.pushed_at || item.repo.updated_at,
-                description: item.repo.description,
-                language: item.repo.language,
-                topics: item.repo.topics || [],
-                owner: { login: item.repo.owner.login, avatar_url: item.repo.owner.avatar_url },
-                starred_at: item.starred_at,
-                sync_status: 'pending'
-            } as Repo));
+            const promises = batchPages.map(async (p) => {
+                const url = config.type === 'username'
+                    ? `https://api.github.com/users/${username}/starred?per_page=100&page=${p}`
+                    : `https://api.github.com/user/starred?per_page=100&page=${p}`;
 
-            await db.upsertRepos(processed);
-            processedCount += processed.length;
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error(`GitHub API Error: ${res.status}`);
+                return res.json();
+            });
+
+            const results = await Promise.all(promises);
+
+            for (const data of results) {
+                if (!Array.isArray(data) || data.length === 0) continue;
+
+                const processed = data.map((item: any) => ({
+                    id: item.repo.id,
+                    name: item.repo.name,
+                    full_name: item.repo.full_name,
+                    html_url: item.repo.html_url,
+                    stargazers_count: item.repo.stargazers_count,
+                    updated_at: item.repo.pushed_at || item.repo.updated_at,
+                    description: item.repo.description,
+                    language: item.repo.language,
+                    topics: item.repo.topics || [],
+                    owner: { login: item.repo.owner.login, avatar_url: item.repo.owner.avatar_url },
+                    starred_at: item.starred_at,
+                    sync_status: 'pending'
+                } as Repo));
+
+                await db.upsertRepos(processed);
+                processedCount += processed.length;
+            }
 
             notify('SYNC_PROGRESS', { current: processedCount, total: remoteTotal });
 
-            if (data.length < 100) {
-                hasMore = false;
+            // Checkpoint management
+            const lastProcessedPage = i + batchPages.length - 1;
+            if (lastProcessedPage >= totalPages || lastProcessedPage >= 100) {
                 await db.setSyncCheckpoint(configId, null);
             } else {
-                page++;
-                await db.setSyncCheckpoint(configId, page);
+                await db.setSyncCheckpoint(configId, lastProcessedPage + 1);
             }
         }
 
