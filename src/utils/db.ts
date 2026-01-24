@@ -96,6 +96,11 @@ class DatabaseService {
         return db.get('repos', id);
     }
 
+    async getPendingRepos(): Promise<Repo[]> {
+        const db = await this.dbPromise;
+        return db.getAllFromIndex('repos', 'by-sync', 'pending');
+    }
+
     // --- Translation Operations ---
     async saveTranslation(repoId: number, translation: string): Promise<void> {
         const db = await this.dbPromise;
