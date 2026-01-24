@@ -182,9 +182,9 @@ export const translateBatch = async (
 
     try {
         // Compute hashes
-        for (const item of needsTranslation) {
+        await Promise.all(needsTranslation.map(async (item) => {
             item.hash = await sha256(item.text);
-        }
+        }));
 
         const hashes = needsTranslation.map(item => item.hash!);
 
