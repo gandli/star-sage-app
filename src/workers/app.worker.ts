@@ -223,25 +223,47 @@ async function runTranslation() {
         const textsToTranslate: string[] = [];
         const directUpdates: Array<{ id: number; text: string }> = [];
 
+        // Identify repos needing readme fetch
+        const reposNeedingReadme = untranslated.filter(repo => {
+            if (processingRepoIds.has(repo.id) || failedRepoIds.has(repo.id)) return false;
+            const sourceText = repo.description;
+            return (!sourceText || sourceText.trim().length <= 2) && !repo.readme_summary;
+        });
+
+        // Mark as processing immediately to prevent race conditions
+        const preProcessedIds = new Set<number>();
+        reposNeedingReadme.forEach(r => {
+            processingRepoIds.add(r.id);
+            preProcessedIds.add(r.id);
+        });
+
+        // Batch fetch readmes
+        const CONCURRENCY = 5;
+        for (let i = 0; i < reposNeedingReadme.length; i += CONCURRENCY) {
+            const batch = reposNeedingReadme.slice(i, i + CONCURRENCY);
+            await Promise.all(batch.map(async (repo) => {
+                const summary = await fetchAndSummarizeReadme(repo);
+                if (summary) {
+                    repo.readme_summary = summary;
+                }
+            }));
+        }
+
         for (const repo of untranslated) {
-            if (processingRepoIds.has(repo.id) || failedRepoIds.has(repo.id)) continue;
-            processingRepoIds.add(repo.id);
+            if (!preProcessedIds.has(repo.id)) {
+                if (processingRepoIds.has(repo.id) || failedRepoIds.has(repo.id)) continue;
+                processingRepoIds.add(repo.id);
+            }
 
             let sourceText = repo.description;
             if (!sourceText || sourceText.trim().length <= 2) {
                 if (repo.readme_summary) {
                     sourceText = repo.readme_summary;
                 } else {
-                    // Try fetch README in background directly from worker
-                    const summary = await fetchAndSummarizeReadme(repo);
-                    if (summary) {
-                        sourceText = summary;
-                    } else {
-                        // Mark as empty to avoid infinite loop
-                        await db.saveBatchTranslations([{ repoId: repo.id, translation: '' }]);
-                        processingRepoIds.delete(repo.id);
-                        continue;
-                    }
+                    // Mark as empty to avoid infinite loop (fetch failed or returned null)
+                    await db.saveBatchTranslations([{ repoId: repo.id, translation: '' }]);
+                    processingRepoIds.delete(repo.id);
+                    continue;
                 }
             }
 
