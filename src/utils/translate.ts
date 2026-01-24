@@ -63,17 +63,21 @@ export const translateText = async (text: string | string[], target: string = 'z
 
             // 4. Store in Supabase Cache
             if (result.length > 0) {
-                try {
-                    const hash = await sha256(text);
-                    await supabase.from('translations').upsert({
-                        input_text: text,
-                        translated_text: result[0],
-                        target_lang: target,
-                        text_hash: hash
-                    }, { onConflict: 'text_hash, target_lang' });
-                } catch (error) {
-                    console.warn('[translate] Cache storage failed:', error);
-                }
+                // Fire and forget
+                (async () => {
+                    try {
+                        const hash = await sha256(text);
+                        const { error } = await supabase.from('translations').upsert({
+                            input_text: text,
+                            translated_text: result[0],
+                            target_lang: target,
+                            text_hash: hash
+                        }, { onConflict: 'text_hash, target_lang' });
+                        if (error) console.warn('[translate] Cache storage failed:', error);
+                    } catch (error) {
+                        console.warn('[translate] Cache storage failed:', error);
+                    }
+                })();
             }
             return result;
         })();
