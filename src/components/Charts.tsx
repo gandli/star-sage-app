@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { GlassCard } from './GlassCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChartsSkeleton } from './LoadingSkeleton';
@@ -18,113 +18,111 @@ interface ChartsProps {
     isLoading?: boolean;
 }
 
-const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hotTopics, isSyncing, isLoading = false }) => {
-    // Custom legend renderer with Devicon icons
-    const renderLegend = (props: any) => {
-        const { payload } = props;
+// Stable color generator for non-language tags
+const getTopicColor = (name: string) => {
+    const brandColor = getLanguageColor(name);
+    // '#8b949e' is the default grey returned by getLanguageColor for unknown languages
+    // For 'Unknown', 'Other', 'Others' - keep the gray color
+    if (name.toLowerCase() === 'unknown' || name.toLowerCase() === 'other' || name.toLowerCase() === 'others') {
+        return '#8b949e';
+    }
+    if (brandColor !== '#8b949e') return brandColor;
+
+    // Fallback: Stable HSL color based on name hash
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // Use a more vibrant range for interest areas
+    return `hsl(${Math.abs(hash) % 360}, 65%, 60%)`;
+};
+
+// Custom legend renderer with Devicon icons
+const renderLegend = (props: any) => {
+    const { payload } = props;
+    return (
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6">
+            {payload.map((entry: any, index: number) => (
+                <div key={`legend-${index}`} className="flex items-center gap-2">
+                    <LanguageIcon name={entry.value} size={14} color={entry.color} />
+                    <span className="text-[9px] font-black uppercase tracking-widest opacity-60 text-[var(--text-primary)]">
+                        {entry.value}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// Custom X-axis tick renderer with Devicon icons
+const renderCustomTick = (props: any) => {
+    const { x, y, payload } = props;
+    const color = getLanguageColor(payload.value);
+    return (
+        <g transform={`translate(${x},${y + 10})`}>
+            <foreignObject x={-12} y={0} width={24} height={24}>
+                <div className="flex items-center justify-center w-full h-full">
+                    <LanguageIcon name={payload.value} size={18} color={color} />
+                </div>
+            </foreignObject>
+        </g>
+    );
+};
+
+// Custom Y-axis tick renderer with Devicon icons for Hot Topics
+const renderYAxisTickWithIcon = (props: any) => {
+    const { x, y, payload } = props;
+    const color = getTopicColor(payload.value);
+    return (
+        <g transform={`translate(${x - 90},${y - 12})`}>
+            <foreignObject x={0} y={0} width={90} height={24}>
+                <div className="flex items-center justify-end gap-2 pr-2 h-full">
+                    <span className="text-[9px] font-black uppercase tracking-tight opacity-70 truncate max-w-[60px]" style={{ color }}>
+                        {payload.value}
+                    </span>
+                    <LanguageIcon name={payload.value} size={14} color={color} />
+                </div>
+            </foreignObject>
+        </g>
+    );
+};
+
+const tooltipStyle = {
+    background: 'var(--bg-glass)',
+    backdropFilter: 'var(--glass-blur)',
+    color: 'var(--text-primary)',
+    border: '1px solid var(--border-glass)',
+    borderRadius: '16px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    padding: '12px 16px',
+    fontWeight: '900',
+    textTransform: 'uppercase' as const,
+    fontSize: '10px',
+    letterSpacing: '0.1em'
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0];
+        const color = data.payload.fill || data.color || '#6366f1';
+        // For pie chart, use payload.name instead of label
+        const displayName = data.name || label;
+        const value = data.value;
+
         return (
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 pt-6">
-                {payload.map((entry: any, index: number) => (
-                    <div key={`legend-${index}`} className="flex items-center gap-2">
-                        <LanguageIcon name={entry.value} size={14} color={entry.color} />
-                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60 text-[var(--text-primary)]">
-                            {entry.value}
-                        </span>
-                    </div>
-                ))}
+            <div
+                style={{ ...tooltipStyle, borderColor: color }}
+                className="flex flex-col gap-1"
+            >
+                <p className="font-black" style={{ color }}>{displayName}</p>
+                <p className="opacity-60">Projects: {value}</p>
             </div>
         );
-    };
+    }
+    return null;
+};
 
-    // Custom X-axis tick renderer with Devicon icons
-    const renderCustomTick = (props: any) => {
-        const { x, y, payload } = props;
-        const color = getLanguageColor(payload.value);
-        return (
-            <g transform={`translate(${x},${y + 10})`}>
-                <foreignObject x={-12} y={0} width={24} height={24}>
-                    <div className="flex items-center justify-center w-full h-full">
-                        <LanguageIcon name={payload.value} size={18} color={color} />
-                    </div>
-                </foreignObject>
-            </g>
-        );
-    };
-
-    // Stable color generator for non-language tags
-    const getTopicColor = (name: string) => {
-        const brandColor = getLanguageColor(name);
-        // '#8b949e' is the default grey returned by getLanguageColor for unknown languages
-        // For 'Unknown', 'Other', 'Others' - keep the gray color
-        if (name.toLowerCase() === 'unknown' || name.toLowerCase() === 'other' || name.toLowerCase() === 'others') {
-            return '#8b949e';
-        }
-        if (brandColor !== '#8b949e') return brandColor;
-
-        // Fallback: Stable HSL color based on name hash
-        let hash = 0;
-        for (let i = 0; i < name.length; i++) {
-            hash = name.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        // Use a more vibrant range for interest areas
-        return `hsl(${Math.abs(hash) % 360}, 65%, 60%)`;
-    };
-
-    // Custom Y-axis tick renderer with Devicon icons for Hot Topics
-    const renderYAxisTickWithIcon = (props: any) => {
-        const { x, y, payload } = props;
-        const color = getTopicColor(payload.value);
-        return (
-            <g transform={`translate(${x - 90},${y - 12})`}>
-                <foreignObject x={0} y={0} width={90} height={24}>
-                    <div className="flex items-center justify-end gap-2 pr-2 h-full">
-                        <span className="text-[9px] font-black uppercase tracking-tight opacity-70 truncate max-w-[60px]" style={{ color }}>
-                            {payload.value}
-                        </span>
-                        <LanguageIcon name={payload.value} size={14} color={color} />
-                    </div>
-                </foreignObject>
-            </g>
-        );
-    };
-
-    const tooltipStyle = {
-        background: 'var(--bg-glass)',
-        backdropFilter: 'var(--glass-blur)',
-        color: 'var(--text-primary)',
-        border: '1px solid var(--border-glass)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-        padding: '12px 16px',
-        fontWeight: '900',
-        textTransform: 'uppercase' as const,
-        fontSize: '10px',
-        letterSpacing: '0.1em'
-    };
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0];
-            const color = data.payload.fill || data.color || '#6366f1';
-            // For pie chart, use payload.name instead of label
-            const displayName = data.name || label;
-            const value = data.value;
-
-            return (
-                <div
-                    style={{ ...tooltipStyle, borderColor: color }}
-                    className="flex flex-col gap-1"
-                >
-                    <p className="font-black" style={{ color }}>{displayName}</p>
-                    <p className="opacity-60">Projects: {value}</p>
-                </div>
-            );
-        }
-        return null;
-    };
-
-
-
+const Charts = memo(({ pieData, languageStats, starTrends, hotTopics, isSyncing, isLoading = false }: ChartsProps) => {
     return (
         <AnimatePresence mode="wait">
             {isLoading ? (
@@ -167,7 +165,7 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
                                             stroke="none"
                                             isAnimationActive={!isSyncing}
                                         >
-                                            {pieData.map((entry, index) => (
+                                            {pieData.map((entry: any, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={getLanguageColor(entry.name)} />
                                             ))}
                                         </Pie>
@@ -330,6 +328,6 @@ const Charts: React.FC<ChartsProps> = ({ pieData, languageStats, starTrends, hot
             )}
         </AnimatePresence>
     );
-};
+});
 
 export default Charts;
