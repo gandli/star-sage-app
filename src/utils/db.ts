@@ -30,6 +30,8 @@ const DB_VERSION = 1;
 
 class DatabaseService {
     private dbPromise: Promise<IDBPDatabase<StarSageDB>>;
+    private translationQueue = new Map<number, { resolve: (value: string | null) => void; reject: (reason?: any) => void }[]>();
+    private translationTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         this.dbPromise = openDB<StarSageDB>(DB_NAME, DB_VERSION, {
@@ -188,18 +190,56 @@ class DatabaseService {
         const cached = await db.get('translations', repoId);
         if (cached) return cached;
 
-        // Supabase fallback (as before)
-        try {
-            const { data } = await supabase.from('repos').select('description_cn').eq('id', repoId).single();
-            if (data?.description_cn) {
-                await this.saveTranslation(repoId, data.description_cn);
-                return data.description_cn;
+        // Queue for batched Supabase fallback
+        return new Promise((resolve, reject) => {
+            if (!this.translationQueue.has(repoId)) {
+                this.translationQueue.set(repoId, []);
             }
-        } catch (e) {
-            console.warn('Supabase backfill failed:', e);
-        }
+            this.translationQueue.get(repoId)!.push({ resolve, reject });
 
-        return null;
+            if (!this.translationTimer) {
+                this.translationTimer = setTimeout(() => {
+                    this.processTranslationQueue();
+                }, 10); // 10ms buffer
+            }
+        });
+    }
+
+    private async processTranslationQueue() {
+        // Clear timer ref
+        this.translationTimer = null;
+
+        const queue = new Map(this.translationQueue);
+        this.translationQueue.clear();
+
+        const repoIds = Array.from(queue.keys());
+        if (repoIds.length === 0) return;
+
+        try {
+            const translationsMap = await this.getTranslationsFromSupabaseBatch(repoIds);
+
+            // Save to local DB if we found anything
+            if (translationsMap.size > 0) {
+                const updates = Array.from(translationsMap.entries()).map(([repoId, translation]) => ({
+                    repoId,
+                    translation
+                }));
+                await this.saveBatchTranslations(updates);
+            }
+
+            // Resolve promises
+            queue.forEach((resolvers, repoId) => {
+                const translation = translationsMap.get(repoId) || null;
+                resolvers.forEach(({ resolve }) => resolve(translation));
+            });
+
+        } catch (error) {
+            console.warn('[db] Batch translation fallback failed:', error);
+            // Resolve all with null to maintain graceful fallback behavior
+            queue.forEach((resolvers) => {
+                resolvers.forEach(({ resolve }) => resolve(null));
+            });
+        }
     }
 
     async getTranslationsFromSupabaseBatch(repoIds: number[]): Promise<Map<number, string>> {
