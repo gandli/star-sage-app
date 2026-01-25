@@ -1,7 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
-import RepoList from './RepoList';
 import type { Repo } from '../types';
+
+// Mock AutoSizer
+vi.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({ children }: any) => children({ height: 1000, width: 1000 }),
+}));
+
+// Mock react-window to render all items
+vi.mock('react-window', () => ({
+  FixedSizeGrid: ({ cellComponent: Cell, cellProps, columnCount, rowCount }: any) => (
+      <div data-testid="fixed-size-grid">
+          {Array.from({ length: rowCount * columnCount }).map((_, i) => {
+              const rowIndex = Math.floor(i / columnCount);
+              const columnIndex = i % columnCount;
+              return (
+                  <Cell
+                      key={i}
+                      columnIndex={columnIndex}
+                      rowIndex={rowIndex}
+                      style={{}}
+                      {...cellProps}
+                  />
+              );
+          })}
+      </div>
+  ),
+}));
+
+import RepoList from './RepoList';
 
 describe('RepoList', () => {
     let observerInstances = 0;
@@ -18,8 +45,7 @@ describe('RepoList', () => {
     });
 
     // Mock ResizeObserver
-    const mockResizeObserver = vi.fn();
-    mockResizeObserver.mockImplementation(() => ({
+    const MockResizeObserver = vi.fn(() => ({
         observe: vi.fn(),
         unobserve: vi.fn(),
         disconnect: vi.fn(),
@@ -28,7 +54,7 @@ describe('RepoList', () => {
     beforeEach(() => {
         observerInstances = 0;
         window.IntersectionObserver = mockIntersectionObserver;
-        window.ResizeObserver = mockResizeObserver;
+        window.ResizeObserver = MockResizeObserver;
     });
 
     afterEach(() => {

@@ -5,6 +5,32 @@ import type { Repo } from '../types';
 import { db } from '../utils/db';
 import { supabase } from '../lib/supabase';
 
+// Mock AutoSizer
+vi.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({ children }: any) => children({ height: 1000, width: 1000 }),
+}));
+
+// Mock react-window to render all items
+vi.mock('react-window', () => ({
+  FixedSizeGrid: ({ cellComponent: Cell, cellProps, columnCount, rowCount }: any) => (
+      <div data-testid="fixed-size-grid">
+          {Array.from({ length: rowCount * columnCount }).map((_, i) => {
+              const rowIndex = Math.floor(i / columnCount);
+              const columnIndex = i % columnCount;
+              return (
+                  <Cell
+                      key={i}
+                      columnIndex={columnIndex}
+                      rowIndex={rowIndex}
+                      style={{}}
+                      {...cellProps}
+                  />
+              );
+          })}
+      </div>
+  ),
+}));
+
 describe('RepoList Performance', () => {
     let observerInstances = 0;
 
@@ -26,8 +52,7 @@ describe('RepoList Performance', () => {
     });
 
     // Mock ResizeObserver
-    const mockResizeObserver = vi.fn();
-    mockResizeObserver.mockImplementation(() => ({
+    const MockResizeObserver = vi.fn(() => ({
         observe: vi.fn(),
         unobserve: vi.fn(),
         disconnect: vi.fn(),
@@ -36,7 +61,7 @@ describe('RepoList Performance', () => {
     beforeEach(async () => {
         observerInstances = 0;
         window.IntersectionObserver = mockIntersectionObserver;
-        window.ResizeObserver = mockResizeObserver;
+        window.ResizeObserver = MockResizeObserver;
 
         // Clear DB
         await db.clearAllData();

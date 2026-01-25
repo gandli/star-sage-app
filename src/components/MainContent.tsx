@@ -91,12 +91,15 @@ export const MainContent: React.FC<MainContentProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    className="flex-1 relative overflow-hidden min-h-0"
                 >
-                    <RepoList
-                        repos={paginatedRepos}
-                        token={config.type === 'token' ? config.value : undefined}
-                        loading={loading}
-                    />
+                    <div className="absolute inset-0">
+                        <RepoList
+                            repos={paginatedRepos}
+                            token={config.type === 'token' ? config.value : undefined}
+                            loading={loading}
+                        />
+                    </div>
                 </motion.div>
             )}
         </AnimatePresence>

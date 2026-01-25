@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
+import { cn } from './utils/theme';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SettingsModal from './components/SettingsModal';
@@ -130,6 +131,9 @@ const App: React.FC = () => {
     const container = scrollContainerRef.current;
     if (!container || !isMobile) return;
 
+    // With virtualization in list view, main container doesn't scroll
+    if (activeView === 'list') return;
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop - clientHeight < 300) {
@@ -237,7 +241,7 @@ const App: React.FC = () => {
           onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div ref={scrollContainerRef} className={cn("flex-1 p-4 custom-scrollbar flex flex-col", activeView === 'list' ? "overflow-hidden" : "overflow-y-auto")}>
           <MainContent
             activeView={activeView}
             loading={loading}
