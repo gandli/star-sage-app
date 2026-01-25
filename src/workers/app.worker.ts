@@ -106,10 +106,11 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
 
             const results = await Promise.all(promises);
 
-            for (const data of results) {
-                if (!Array.isArray(data) || data.length === 0) continue;
+            const allItems = results.flat();
+            const validItems = allItems.filter((item: any) => item && item.repo);
 
-                const processed = data.map((item: any) => ({
+            if (validItems.length > 0) {
+                const processed = validItems.map((item: any) => ({
                     id: item.repo.id,
                     name: item.repo.name,
                     full_name: item.repo.full_name,
