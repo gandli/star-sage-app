@@ -13,6 +13,7 @@ interface StarSageDB extends DBSchema {
         indexes: {
             'by-sync': string;
             'by-lang': string;
+            'by-starred-at': string;
         };
     };
     metadata: {
@@ -26,7 +27,7 @@ interface StarSageDB extends DBSchema {
 }
 
 const DB_NAME = 'StarsDashDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class DatabaseService {
     private dbPromise: Promise<IDBPDatabase<StarSageDB>>;
@@ -35,19 +36,28 @@ class DatabaseService {
 
     constructor() {
         this.dbPromise = openDB<StarSageDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                // Repos Store
-                const repoStore = db.createObjectStore('repos', {
-                    keyPath: 'id'
-                });
-                repoStore.createIndex('by-sync', 'sync_status');
-                repoStore.createIndex('by-lang', 'language');
+            upgrade(db, oldVersion, newVersion, tx) {
+                if (oldVersion < 1) {
+                    // Repos Store
+                    const repoStore = db.createObjectStore('repos', {
+                        keyPath: 'id'
+                    });
+                    repoStore.createIndex('by-sync', 'sync_status');
+                    repoStore.createIndex('by-lang', 'language');
 
-                // Metadata Store (for flags, config, etc)
-                db.createObjectStore('metadata');
+                    // Metadata Store (for flags, config, etc)
+                    db.createObjectStore('metadata');
 
-                // Translations Cache (simple fallback)
-                db.createObjectStore('translations');
+                    // Translations Cache (simple fallback)
+                    db.createObjectStore('translations');
+                }
+
+                if (oldVersion < 2) {
+                    const repoStore = tx.objectStore('repos');
+                    if (!repoStore.indexNames.contains('by-starred-at')) {
+                        repoStore.createIndex('by-starred-at', 'starred_at');
+                    }
+                }
             }
         });
     }
@@ -333,11 +343,14 @@ class DatabaseService {
         const tx = db.transaction('repos', 'readonly');
         const trends: Record<string, number> = {};
 
-        let cursor = await tx.store.openCursor();
+        // Use openKeyCursor to iterate over the index keys (starred_at values)
+        // This avoids loading the full repo objects from the object store
+        let cursor = await tx.objectStore('repos').index('by-starred-at').openKeyCursor();
+
         while (cursor) {
-            const starredAt = cursor.value.starred_at;
-            if (starredAt) {
-                const month = starredAt.substring(0, 7);
+            const dateStr = cursor.key;
+            if (typeof dateStr === 'string') {
+                const month = dateStr.substring(0, 7);
                 trends[month] = (trends[month] || 0) + 1;
             }
             cursor = await cursor.continue();
