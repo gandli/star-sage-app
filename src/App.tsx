@@ -88,6 +88,13 @@ const App: React.FC = () => {
   });
   const { totalPages } = repoFilter;
 
+  // Safety: Ensure currentPage is within bounds
+  useEffect(() => {
+    if (!loading && totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [loading, totalPages, currentPage, setCurrentPage]);
+
   // --- Syncs ---
   useUrlSync({
     activeView,
