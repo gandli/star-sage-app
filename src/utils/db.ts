@@ -13,6 +13,7 @@ interface StarSageDB extends DBSchema {
         indexes: {
             'by-sync': string;
             'by-lang': string;
+            'by-translation': string;
         };
     };
     metadata: {
@@ -26,7 +27,7 @@ interface StarSageDB extends DBSchema {
 }
 
 const DB_NAME = 'StarsDashDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class DatabaseService {
     private dbPromise: Promise<IDBPDatabase<StarSageDB>>;
@@ -35,19 +36,28 @@ class DatabaseService {
 
     constructor() {
         this.dbPromise = openDB<StarSageDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                // Repos Store
-                const repoStore = db.createObjectStore('repos', {
-                    keyPath: 'id'
-                });
-                repoStore.createIndex('by-sync', 'sync_status');
-                repoStore.createIndex('by-lang', 'language');
+            upgrade(db, oldVersion, newVersion, transaction) {
+                // Version 1
+                if (oldVersion < 1) {
+                    // Repos Store
+                    const repoStore = db.createObjectStore('repos', {
+                        keyPath: 'id'
+                    });
+                    repoStore.createIndex('by-sync', 'sync_status');
+                    repoStore.createIndex('by-lang', 'language');
 
-                // Metadata Store (for flags, config, etc)
-                db.createObjectStore('metadata');
+                    // Metadata Store (for flags, config, etc)
+                    db.createObjectStore('metadata');
 
-                // Translations Cache (simple fallback)
-                db.createObjectStore('translations');
+                    // Translations Cache (simple fallback)
+                    db.createObjectStore('translations');
+                }
+
+                // Version 2
+                if (oldVersion < 2) {
+                    const repoStore = transaction.objectStore('repos');
+                    repoStore.createIndex('by-translation', 'description_cn');
+                }
             }
         });
     }
@@ -272,18 +282,7 @@ class DatabaseService {
     async getStats(): Promise<{ total: number; translated: number }> {
         const db = await this.dbPromise;
         const total = await db.count('repos');
-
-        let translated = 0;
-        const tx = db.transaction('repos', 'readonly');
-        let cursor = await tx.store.openCursor();
-
-        while (cursor) {
-            const r = cursor.value;
-            if (r.description_cn !== null && r.description_cn !== undefined) {
-                translated++;
-            }
-            cursor = await cursor.continue();
-        }
+        const translated = await db.countFromIndex('repos', 'by-translation');
 
         return {
             total,

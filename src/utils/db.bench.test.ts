@@ -52,4 +52,42 @@ describe('Database Performance Benchmark', () => {
             console.log(`Improvement: ${((endOld - startOld) / (endNew - startNew)).toFixed(2)}x`);
         }
     });
+
+    it('benchmarks getStats', async () => {
+        const TOTAL_REPOS = 10000;
+        const TRANSLATED_COUNT = 5000;
+        const repos: Repo[] = [];
+
+        for (let i = 0; i < TOTAL_REPOS; i++) {
+            repos.push({
+                id: i,
+                name: `repo-${i}`,
+                full_name: `user/repo-${i}`,
+                html_url: `http://github.com/user/repo-${i}`,
+                stargazers_count: i,
+                updated_at: new Date().toISOString(),
+                description: `Description for repo ${i}`,
+                // Half are translated
+                description_cn: i < TRANSLATED_COUNT ? `Translated description ${i}` : undefined,
+                language: 'TypeScript',
+                topics: ['test'],
+                owner: { login: 'user', avatar_url: 'http://avatar' },
+                starred_at: new Date().toISOString(),
+                sync_status: 'synced'
+            } as Repo);
+        }
+
+        await db.upsertRepos(repos);
+
+        // Measure
+        const start = performance.now();
+        const stats = await db.getStats();
+        const end = performance.now();
+
+        console.log(`getStats Time: ${(end - start).toFixed(4)}ms`);
+        console.log(`Total: ${stats.total}, Translated: ${stats.translated}`);
+
+        expect(stats.total).toBe(TOTAL_REPOS);
+        expect(stats.translated).toBe(TRANSLATED_COUNT);
+    });
 });
