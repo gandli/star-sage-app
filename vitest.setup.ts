@@ -12,6 +12,7 @@ vi.mock('./src/lib/supabase', () => ({
             delete: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
+            not: vi.fn().mockReturnThis(),
             order: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
             single: vi.fn().mockReturnThis(),
@@ -43,7 +44,8 @@ const localStorageMock = (function () {
 })();
 
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
-Object.defineProperty(global, 'window', { value: { localStorage: localStorageMock } });
+// Do not overwrite global.window as it breaks JSDOM env (e.g. addEventListener)
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Mock fetch
 global.fetch = vi.fn();
