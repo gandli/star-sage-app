@@ -1,6 +1,6 @@
 export function cleanMarkdown(markdown: string) {
     const lines = markdown
-        .replace(/<!--[\s\S]*?-->|`{3}[\s\S]*?`{3}|!\[.*\]\(.*\)|^#+.*$|^\s*[-*+]\s+|<[^>]*>?|&[a-z]+;/gm, '')
+        .replace(/<!--[\s\S]*?-->|`{3}[\s\S]*?`{3}|!\[[^\]]*\]\([^)]*\)|^#+.*$|^\s*[-*+]\s+|<[^>]*>|&[a-z]+;/gm, '')
         .replace(/\[(.*?)\]\(.*?\)/g, '$1')
         .replace(/`(.+?)`/g, '$1')
         .split('\n');
