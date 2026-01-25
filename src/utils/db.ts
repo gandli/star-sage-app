@@ -311,7 +311,7 @@ class DatabaseService {
     }
 
     // --- Readme Operations ---
-    async saveReadmeSummary(repoId: number, summary: string): Promise<void> {
+    async saveReadmeSummary(repoId: number, summary: string, skipCloudSync: boolean = false): Promise<void> {
         const db = await this.dbPromise;
         const tx = db.transaction('repos', 'readwrite');
         const repo = await tx.objectStore('repos').get(repoId);
@@ -322,10 +322,12 @@ class DatabaseService {
         }
         await tx.done;
 
-        // Fire and forget cloud update
-        supabase.from('repos').update({ readme_summary: summary }).eq('id', repoId).then(({ error }) => {
-            if (error) console.warn('Background README sync failed:', error);
-        });
+        if (!skipCloudSync) {
+            // Fire and forget cloud update
+            supabase.from('repos').update({ readme_summary: summary }).eq('id', repoId).then(({ error }) => {
+                if (error) console.warn('Background README sync failed:', error);
+            });
+        }
     }
 
     // --- Generic Metadata ---

@@ -151,7 +151,7 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
 
 // --- Logic: README Summarization ---
 
-async function fetchAndSummarizeReadme(repo: Repo): Promise<string | null> {
+async function fetchAndSummarizeReadme(repo: Repo, skipCloudSync = false): Promise<string | null> {
     try {
         const githubToken = currentConfig?.type === 'token' ? currentConfig.value : null;
         const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
@@ -175,7 +175,7 @@ async function fetchAndSummarizeReadme(repo: Repo): Promise<string | null> {
             const summary = cleanMarkdown(content);
             if (summary) {
                 const finalSummary = summary + (summary.length >= 300 ? '...' : '');
-                await db.saveReadmeSummary(repo.id, finalSummary);
+                await db.saveReadmeSummary(repo.id, finalSummary, skipCloudSync);
                 return finalSummary;
             }
         }
@@ -239,14 +239,36 @@ async function runTranslation() {
 
         // Batch fetch readmes
         const CONCURRENCY = 5;
+        const readmeUpdates: Repo[] = [];
         for (let i = 0; i < reposNeedingReadme.length; i += CONCURRENCY) {
             const batch = reposNeedingReadme.slice(i, i + CONCURRENCY);
             await Promise.all(batch.map(async (repo) => {
-                const summary = await fetchAndSummarizeReadme(repo);
+                const summary = await fetchAndSummarizeReadme(repo, true);
                 if (summary) {
                     repo.readme_summary = summary;
+                    readmeUpdates.push(repo);
                 }
             }));
+        }
+
+        if (readmeUpdates.length > 0) {
+            // Batch sync readmes to cloud
+            supabase.from('repos').upsert(readmeUpdates.map(r => ({
+                id: r.id,
+                name: r.name,
+                full_name: r.full_name,
+                html_url: r.html_url,
+                stargazers_count: r.stargazers_count,
+                updated_at: r.updated_at,
+                topics: r.topics,
+                language: r.language,
+                description: r.description,
+                description_cn: r.description_cn,
+                owner: r.owner,
+                readme_summary: r.readme_summary
+            })), { onConflict: 'id' }).then(({ error }) => {
+                if (error) console.warn('Background README batch sync failed:', error);
+            });
         }
 
         for (const repo of untranslated) {
