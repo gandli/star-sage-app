@@ -22,9 +22,13 @@ export function useAppState() {
 
     const [currentPage, setCurrentPage] = useState(() => {
         const params = new URLSearchParams(window.location.search);
-        const urlPage = params.get('page');
-        if (urlPage) return parseInt(urlPage, 10);
-        return parseInt(localStorage.getItem('gh_stars_page') || '1', 10);
+        let page = parseInt(params.get('page') || localStorage.getItem('gh_stars_page') || '1', 10);
+
+        // Sanitization
+        if (isNaN(page) || page < 1) page = 1;
+        if (page > 1000000) page = 1; // Safety cap to prevent garbage values (e.g. timestamps)
+
+        return page;
     });
 
     const [searchQuery, setSearchQuery] = useState(() => {
