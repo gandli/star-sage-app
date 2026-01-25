@@ -37,6 +37,7 @@ class StarDataService {
     private initialized = false;
     private pendingReadmeRequests = new Map<number, (summary: string | null) => void>();
     private pendingStatsRequests = new Map<number, (stats: any) => void>();
+    private refreshTimer: any = null;
 
     constructor() {
         this.initWorker();
@@ -255,18 +256,25 @@ class StarDataService {
     }
 
     public async refreshFromLocal() {
-        const localData = await db.getAllRepos();
-        // Fetch stats in parallel if possible, but we wait to update state atomically
-        // to prevent race conditions where repos are large but stats are missing.
-        const fullStats = await this.calculateStats();
-        this.updateState({
-            repos: localData,
-            stats: {
-                ...this.state.stats,
-                languageStats: fullStats.languageStats,
-                topicStats: fullStats.topicStats,
-                trendStats: fullStats.trendStats
-            }
+        if (this.refreshTimer) clearTimeout(this.refreshTimer);
+
+        return new Promise<void>((resolve) => {
+            this.refreshTimer = setTimeout(async () => {
+                const localData = await db.getAllRepos();
+                // Fetch stats in parallel if possible, but we wait to update state atomically
+                // to prevent race conditions where repos are large but stats are missing.
+                const fullStats = await this.calculateStats();
+                this.updateState({
+                    repos: localData,
+                    stats: {
+                        ...this.state.stats,
+                        languageStats: fullStats.languageStats,
+                        topicStats: fullStats.topicStats,
+                        trendStats: fullStats.trendStats
+                    }
+                });
+                resolve();
+            }, 300);
         });
     }
 

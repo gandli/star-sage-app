@@ -440,7 +440,8 @@ self.onmessage = (e) => {
                     if (payload.requestId) {
                         notify('README_FETCHED', { requestId: payload.requestId, repoId: payload.repo.id, summary });
                     }
-                    notify('DATA_CHANGED');
+                    // Do not notify DATA_CHANGED here to avoid triggering full reload on main thread
+                    // The main thread RepoCard updates its local state via the promise callback
                 });
             }
             break;

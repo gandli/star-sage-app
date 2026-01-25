@@ -35,46 +35,34 @@ interface RepoCardProps {
     token?: string;
 }
 
-const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
+const arePropsEqual = (prev: RepoCardProps, next: RepoCardProps) => {
+    if (prev.index !== next.index) return false;
+    // token is passed but currently unused in component, but we compare it for correctness
+    if (prev.token !== next.token) return false;
+
+    const p = prev.repo;
+    const n = next.repo;
+
+    return (
+        p.id === n.id &&
+        p.updated_at === n.updated_at &&
+        p.stargazers_count === n.stargazers_count &&
+        p.description_cn === n.description_cn &&
+        p.readme_summary === n.readme_summary &&
+        p.description === n.description &&
+        p.language === n.language &&
+        p.owner.login === n.owner.login &&
+        p.owner.avatar_url === n.owner.avatar_url &&
+        (p.topics === n.topics || (
+            p.topics?.length === n.topics?.length &&
+            p.topics?.every((t, i) => t === n.topics![i])
+        ))
+    );
+};
+
+const RepoCard = React.memo<RepoCardProps>(({ repo, index }) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
-    const [translating, setTranslating] = React.useState(false);
-    const [translatedDesc, setTranslatedDesc] = React.useState<string | null>(repo.description_cn ?? null);
-    const [isTranslated, setIsTranslated] = React.useState(repo.description_cn !== null && repo.description_cn !== undefined);
-
-    const handleTranslate = React.useCallback(async (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        if (isTranslated || translatedDesc !== null) return;
-
-        const textToTranslate = repo.description || readmeDesc;
-        if (!textToTranslate) return;
-
-        setTranslating(true);
-        try {
-            const cached = await db.getTranslation(repo.id);
-            if (cached) {
-                setTranslatedDesc(cached);
-                setIsTranslated(true);
-                return;
-            }
-
-            const translated = await translateText(textToTranslate);
-            if (translated && translated.length > 0) {
-                const result = translated[0];
-                setTranslatedDesc(result);
-                setIsTranslated(true);
-                await db.saveTranslation(repo.id, result);
-            }
-        } catch (error) {
-            console.error('Translation failed:', error);
-        } finally {
-            setTranslating(false);
-        }
-    }, [isTranslated, translatedDesc, repo.id, repo.description, readmeDesc]);
 
     const formatUpdateDate = (dateString: string) => {
         if (!dateString) return 'Update required';
@@ -133,27 +121,10 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
         getReadmeSummary();
     }, [repo.id, repo.description, repo.readme_summary, isVisible, readmeDesc]);
 
-    React.useEffect(() => {
-        if (isTranslated || translatedDesc !== null) return;
-        if (!isVisible || translating) return;
-
-        const currentDesc = repo.description || readmeDesc;
-        if (!currentDesc || fetchingReadme) return;
-
-        const isChinese = /[\u4e00-\u9fa5]/.test(currentDesc);
-        if (isChinese) return;
-
-        const timer = setTimeout(() => {
-            handleTranslate();
-        }, 300 + (index % 5) * 100);
-
-        return () => clearTimeout(timer);
-    }, [isVisible, repo.description, readmeDesc, fetchingReadme, isTranslated, translating, translatedDesc, index, handleTranslate]);
-
     const currentDesc = repo.description || readmeDesc;
     const isSourceChinese = currentDesc ? /[\u4e00-\u9fa5]/.test(currentDesc) : false;
-    const isShowingChinese = translatedDesc !== null || isSourceChinese;
-    const displayDesc = translatedDesc !== null ? translatedDesc : (currentDesc || 'No project manifest found.');
+    const isShowingChinese = (repo.description_cn !== null && repo.description_cn !== undefined) || isSourceChinese;
+    const displayDesc = (repo.description_cn !== null && repo.description_cn !== undefined) ? repo.description_cn : (currentDesc || 'No project manifest found.');
 
     return (
         <GlassCard
@@ -169,7 +140,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
                             <div className={cn(
                                 "absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-black transition-all duration-500",
                                 isShowingChinese ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-pulse" :
-                                    (fetchingReadme || translating) ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)] animate-pulse" :
+                                    fetchingReadme ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)] animate-pulse" :
                                         "bg-zinc-200 dark:bg-zinc-800"
                             )} />
                         </div>
@@ -257,7 +228,9 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
             </div>
         </GlassCard>
     );
-};
+}, arePropsEqual);
+
+RepoCard.displayName = 'RepoCard';
 
 interface RepoListProps {
     repos: Repo[];
