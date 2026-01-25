@@ -46,6 +46,17 @@ describe('cleanMarkdown', () => {
         expect(result).not.toContain('&copy;');
     });
 
+    it('preserves text between images', () => {
+        const result = cleanMarkdown('![img1](url1) keep this text ![img2](url2)');
+        expect(result).toContain('keep this text');
+    });
+
+    it('does not strip non-tag brackets', () => {
+        const input = 'x < y but this string must be long enough to be kept';
+        const result = cleanMarkdown(input);
+        expect(result).toContain('x < y');
+    });
+
     it('benchmarks cleanMarkdown', () => {
         const iterations = 20; // Fewer iterations for large string
         const start = performance.now();
