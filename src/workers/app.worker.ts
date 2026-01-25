@@ -1,5 +1,6 @@
 import { db } from '../utils/db';
 import { translateBatch, containsChinese } from '../utils/translate';
+import { cleanMarkdown } from '../utils/markdown';
 import { supabase } from '../lib/supabase';
 import type { Repo, Config } from '../types';
 
@@ -185,29 +186,6 @@ async function fetchAndSummarizeReadme(repo: Repo): Promise<string | null> {
     return null;
 }
 
-function cleanMarkdown(markdown: string) {
-    const lines = markdown
-        .replace(/<!--[\s\S]*?-->/g, '')
-        .replace(/^#+.*$/gm, '')
-        .replace(/!\[.*\]\(.*\)/g, '')
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-        .replace(/`{3}[\s\S]*?`{3}/g, '')
-        .replace(/`(.+?)`/g, '$1')
-        .replace(/^\s*[-*+]\s+/gm, '')
-        .replace(/<[^>]*>?/gm, '')
-        .replace(/&[a-z]+;/g, '')
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-
-    const meaningfulLines = lines.filter(line => {
-        if (line.includes('[!') || line.includes('build') || line.includes('license') || line.length < 10) return false;
-        if (/^[#\s\-*+=!]+$/.test(line)) return false;
-        return true;
-    });
-
-    return meaningfulLines.slice(0, 3).join(' ').substring(0, 300);
-}
 
 // --- Logic: Translation ---
 
