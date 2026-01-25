@@ -29,17 +29,68 @@ export function useRepoFilter({
     isMobile,
 }: UseRepoFilterProps) {
 
-    const languageStats = useMemo(() => {
-        if (providedStats && providedStats.length > 0) return providedStats;
-        const stats: Record<string, number> = {};
-        repos.forEach(repo => {
-            const lang = repo.language || 'Unknown';
-            stats[lang] = (stats[lang] || 0) + 1;
-        });
-        return Object.entries(stats)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
-    }, [repos, providedStats]);
+    const { languageStats, hotTopics, starTrends } = useMemo(() => {
+        const hasLang = providedStats && providedStats.length > 0;
+        const hasTopics = providedTopicStats && providedTopicStats.length > 0;
+        const hasTrends = providedTrendStats && providedTrendStats.length > 0;
+
+        if (hasLang && hasTopics && hasTrends) {
+            return {
+                languageStats: providedStats,
+                hotTopics: providedTopicStats,
+                starTrends: providedTrendStats
+            };
+        }
+
+        const langCounts: Record<string, number> = {};
+        const topicCounts: Record<string, number> = {};
+        const trendCounts: Record<string, number> = {};
+
+        // Single pass for all missing stats
+        for (let i = 0; i < repos.length; i++) {
+            const repo = repos[i];
+
+            if (!hasLang) {
+                const lang = repo.language || 'Unknown';
+                langCounts[lang] = (langCounts[lang] || 0) + 1;
+            }
+
+            if (!hasTopics && repo.topics) {
+                for (let j = 0; j < repo.topics.length; j++) {
+                    const topic = repo.topics[j];
+                    topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+                }
+            }
+
+            if (!hasTrends && repo.starred_at) {
+                // Optimize: Use string slicing for ISO dates (YYYY-MM)
+                // Fallback to Date parsing if not standard ISO
+                let month;
+                if (repo.starred_at.length >= 7) {
+                    month = repo.starred_at.substring(0, 7);
+                } else {
+                     const date = new Date(repo.starred_at);
+                     month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                }
+                trendCounts[month] = (trendCounts[month] || 0) + 1;
+            }
+        }
+
+        return {
+            languageStats: hasLang ? providedStats : Object.entries(langCounts)
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value),
+
+            hotTopics: hasTopics ? providedTopicStats : Object.entries(topicCounts)
+                .map(([name, value]) => ({ name, value }))
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10),
+
+            starTrends: hasTrends ? providedTrendStats : Object.entries(trendCounts)
+                .map(([month, count]) => ({ month, count }))
+                .sort((a, b) => a.month.localeCompare(b.month))
+        };
+    }, [repos, providedStats, providedTopicStats, providedTrendStats]);
 
     const filteredRepos = useMemo(() => {
         if (!selectedLanguage) return repos;
@@ -104,34 +155,6 @@ export function useRepoFilter({
         return [...top, { name: 'Others', value: othersValue }];
     }, [languageStats]);
 
-    const hotTopics = useMemo(() => {
-        if (providedTopicStats && providedTopicStats.length > 0) return providedTopicStats;
-        const topicCounts: Record<string, number> = {};
-        repos.forEach(repo => {
-            repo.topics?.forEach(topic => {
-                topicCounts[topic] = (topicCounts[topic] || 0) + 1;
-            });
-        });
-        return Object.entries(topicCounts)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 10);
-    }, [repos, providedTopicStats]);
-
-    const starTrends = useMemo(() => {
-        if (providedTrendStats && providedTrendStats.length > 0) return providedTrendStats;
-        const trends: Record<string, number> = {};
-        repos.forEach(repo => {
-            if (repo.starred_at) {
-                const date = new Date(repo.starred_at);
-                const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                trends[month] = (trends[month] || 0) + 1;
-            }
-        });
-        return Object.entries(trends)
-            .map(([month, count]) => ({ month, count }))
-            .sort((a, b) => a.month.localeCompare(b.month));
-    }, [repos, providedTrendStats]);
 
     return {
         languageStats,
