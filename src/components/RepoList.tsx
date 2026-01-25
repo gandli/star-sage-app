@@ -281,6 +281,44 @@ const RepoList: React.FC<RepoListProps> = ({
         );
     }
 
+    // Optimization: Batch fetch translations for displayed repos
+    React.useEffect(() => {
+        if (!repos || repos.length === 0) return;
+
+        const prefetchTranslations = async () => {
+            const missingIds = repos
+                .filter(r =>
+                    // Not translated yet
+                    !r.description_cn &&
+                    // Has description
+                    r.description &&
+                    // Not already Chinese
+                    !/[\u4e00-\u9fa5]/.test(r.description)
+                )
+                .map(r => r.id);
+
+            if (missingIds.length === 0) return;
+
+            try {
+                // Batch fetch from Supabase
+                const translationsMap = await db.getTranslationsFromSupabaseBatch(missingIds);
+
+                if (translationsMap.size > 0) {
+                    // Batch save to IDB
+                    const updates = Array.from(translationsMap.entries()).map(([repoId, translation]) => ({
+                        repoId,
+                        translation
+                    }));
+                    await db.saveBatchTranslations(updates);
+                }
+            } catch (error) {
+                console.warn('[RepoList] Failed to batch prefetch translations:', error);
+            }
+        };
+
+        prefetchTranslations();
+    }, [repos]);
+
     return (
         <div className="w-full pb-12 pt-2">
             <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
