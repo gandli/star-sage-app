@@ -253,14 +253,12 @@ class DatabaseService {
 
     async getLanguageStats(): Promise<{ name: string; value: number }[]> {
         const db = await this.dbPromise;
-        const tx = db.transaction('repos', 'readonly');
+        const repos = await db.getAll('repos');
         const stats: Record<string, number> = {};
 
-        let cursor = await tx.store.openCursor();
-        while (cursor) {
-            const lang = cursor.value.language || 'Unknown';
+        for (const repo of repos) {
+            const lang = repo.language || 'Unknown';
             stats[lang] = (stats[lang] || 0) + 1;
-            cursor = await cursor.continue();
         }
 
         return Object.entries(stats)
