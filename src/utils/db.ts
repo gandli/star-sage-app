@@ -293,12 +293,41 @@ class DatabaseService {
 
     async getLanguageStats(): Promise<{ name: string; value: number }[]> {
         const db = await this.dbPromise;
-        const repos = await db.getAll('repos');
-        const stats: Record<string, number> = {};
+        const tx = db.transaction('repos', 'readonly');
+        const index = tx.store.index('by-lang');
+        let cursor = await index.openKeyCursor();
 
-        for (const repo of repos) {
-            const lang = repo.language || 'Unknown';
-            stats[lang] = (stats[lang] || 0) + 1;
+        const stats: Record<string, number> = {};
+        let totalIndexed = 0;
+
+        while (cursor) {
+            const lang = cursor.key as string;
+            // Count all records with this specific language key
+            // Note: index.count(key) is efficient
+            const count = await index.count(lang);
+
+            const label = lang || 'Unknown';
+            stats[label] = (stats[label] || 0) + count;
+            totalIndexed += count;
+
+            // Jump to next language to avoid iterating every record
+            // Appending a null character (or very small char) to the current string
+            // creates a key strictly greater than current but less than any other valid string starting with current + something else?
+            // Actually, we want the next DIFFERENT key.
+            // current key: "JavaScript"
+            // "JavaScript" + "\u0000" is > "JavaScript".
+            // If the next key is "Kotlin", "JavaScript\u0000" < "Kotlin".
+            // So this skips all "JavaScript" records and lands on "Kotlin".
+            cursor = await cursor.continue(lang + '\u0000');
+        }
+
+        // Calculate 'Unknown' (repos not in the index or null keys)
+        // Note: repos with null/undefined language are NOT added to 'by-lang' index
+        // Use the same transaction to ensure consistency
+        const totalRepos = await tx.store.count();
+        const missing = totalRepos - totalIndexed;
+        if (missing > 0) {
+            stats['Unknown'] = (stats['Unknown'] || 0) + missing;
         }
 
         return Object.entries(stats)
