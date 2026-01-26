@@ -337,16 +337,18 @@ class DatabaseService {
 
     async getTopicStats(): Promise<{ name: string; value: number }[]> {
         const db = await this.dbPromise;
-        const repos = await db.getAll('repos');
+        const tx = db.transaction('repos', 'readonly');
         const stats: Record<string, number> = {};
 
-        for (const repo of repos) {
-            const topics = repo.topics;
+        let cursor = await tx.store.openCursor();
+        while (cursor) {
+            const topics = cursor.value.topics;
             if (topics && Array.isArray(topics)) {
                 for (const topic of topics) {
                     stats[topic] = (stats[topic] || 0) + 1;
                 }
             }
+            cursor = await cursor.continue();
         }
 
         return Object.entries(stats)
