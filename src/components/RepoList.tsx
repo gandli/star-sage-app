@@ -29,13 +29,12 @@ const DeepWikiLogo: React.FC<{ size?: number; className?: string }> = ({ size = 
     </svg>
 );
 
-interface RepoCardProps {
+export interface RepoCardProps {
     repo: Repo;
     index: number;
-    token?: string;
 }
 
-const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
+export const RepoCard = React.memo(({ repo, index }: RepoCardProps) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
     const [translating, setTranslating] = React.useState(false);
@@ -257,7 +256,7 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
             </div>
         </GlassCard>
     );
-};
+});
 
 interface RepoListProps {
     repos: Repo[];
@@ -324,7 +323,7 @@ const RepoList: React.FC<RepoListProps> = ({
             <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
                 <AnimatePresence mode="popLayout">
                     {repos.map((repo, idx) => (
-                        <RepoCard key={repo.id} repo={repo} index={idx} token={token} />
+                        <RepoCard key={repo.id} repo={repo} index={idx} />
                     ))}
                 </AnimatePresence>
             </div>
