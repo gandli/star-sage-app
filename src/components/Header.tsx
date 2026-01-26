@@ -100,6 +100,7 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                     onClick={onOpenMenu}
                     className="h-10 w-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 md:hidden hover:bg-black/10 transition-all active:scale-90"
+                    aria-label="Open menu"
                 >
                     <PanelLeft size={18} className="text-blue-500" />
                 </button>
@@ -172,6 +173,7 @@ const Header: React.FC<HeaderProps> = ({
                                 onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
                                 className="h-8 w-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-all"
                                 title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                                aria-label={sortDirection === 'asc' ? 'Sort ascending' : 'Sort descending'}
                             >
                                 {sortDirection === 'asc' ? <SortAsc size={14} className="text-blue-500" /> : <SortDesc size={14} className="text-blue-500" />}
                             </button>
@@ -183,6 +185,7 @@ const Header: React.FC<HeaderProps> = ({
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
                                 className="h-8 w-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
+                                aria-label="Previous page"
                             >
                                 <ChevronLeft size={16} />
                             </button>
@@ -193,6 +196,7 @@ const Header: React.FC<HeaderProps> = ({
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
                                 className="h-8 w-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-10 rounded-lg transition-all active:scale-90 cursor-pointer"
+                                aria-label="Next page"
                             >
                                 <ChevronRight size={16} />
                             </button>
@@ -215,6 +219,12 @@ const Header: React.FC<HeaderProps> = ({
                             isTranslating ? 'Translating descriptions...' :
                                 isFullySynced ? 'Latest stars synced (Click to Force Sync)' :
                                     'Sync Stars with GitHub'
+                    }
+                    aria-label={
+                        loading ? 'Syncing' :
+                            isTranslating ? 'Translating descriptions' :
+                                isFullySynced ? 'Force sync with GitHub' :
+                                    'Sync stars with GitHub'
                     }
                 >
                     {loading ? (
@@ -247,6 +257,7 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                     onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                     className={`hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-90 ${isSearchFocused ? 'md:hidden lg:flex' : ''}`}
+                    aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                 >
                     {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
                 </button>
