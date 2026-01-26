@@ -43,9 +43,28 @@ const localStorageMock = (function () {
     };
 })();
 
+// Mock sessionStorage
+const sessionStorageMock = (function () {
+    let store: Record<string, string> = {};
+    return {
+        getItem: vi.fn((key: string) => store[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
+            store[key] = value.toString();
+        }),
+        removeItem: vi.fn((key: string) => {
+            delete store[key];
+        }),
+        clear: vi.fn(() => {
+            store = {};
+        }),
+    };
+})();
+
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, 'sessionStorage', { value: sessionStorageMock });
 // Do not overwrite global.window as it breaks JSDOM env (e.g. addEventListener)
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock });
 
 // Mock fetch
 global.fetch = vi.fn();
