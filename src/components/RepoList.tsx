@@ -282,23 +282,24 @@ const RepoList: React.FC<RepoListProps> = ({
     }
 
     // Optimization: Batch fetch translations for displayed repos
+    const missingIds = React.useMemo(() => {
+        if (!repos || repos.length === 0) return [];
+        return repos
+            .filter(r =>
+                // Not translated yet
+                !r.description_cn &&
+                // Has description
+                r.description &&
+                // Not already Chinese
+                !/[\u4e00-\u9fa5]/.test(r.description)
+            )
+            .map(r => r.id);
+    }, [repos]);
+
     React.useEffect(() => {
-        if (!repos || repos.length === 0) return;
+        if (missingIds.length === 0) return;
 
         const prefetchTranslations = async () => {
-            const missingIds = repos
-                .filter(r =>
-                    // Not translated yet
-                    !r.description_cn &&
-                    // Has description
-                    r.description &&
-                    // Not already Chinese
-                    !/[\u4e00-\u9fa5]/.test(r.description)
-                )
-                .map(r => r.id);
-
-            if (missingIds.length === 0) return;
-
             try {
                 // Batch fetch from Supabase
                 const translationsMap = await db.getTranslationsFromSupabaseBatch(missingIds);
@@ -317,7 +318,7 @@ const RepoList: React.FC<RepoListProps> = ({
         };
 
         prefetchTranslations();
-    }, [repos]);
+    }, [missingIds]);
 
     return (
         <div className="w-full pb-12 pt-2">
