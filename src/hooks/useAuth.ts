@@ -81,6 +81,13 @@ export function useAuth() {
                 }
             });
 
+            // 🛡️ Sentinel: Also clear sessionStorage token
+            try {
+                sessionStorage.removeItem('gh_stars_token');
+            } catch (e) {
+                console.warn('Failed to remove token from sessionStorage:', e);
+            }
+
             // Clear IndexedDB data (starred repos, translations, etc.)
             try {
                 await db.clearAllData();

@@ -79,7 +79,14 @@ class StarDataService {
                         if (this.state.config) {
                             const newConfig = { ...this.state.config, resolvedUsername: payload.resolvedUsername };
                             this.updateState({ config: newConfig });
-                            localStorage.setItem('gh_stars_config', JSON.stringify(newConfig));
+
+                            // 🛡️ Sentinel: Sanitize before saving to localStorage
+                            if (newConfig.type === 'token') {
+                                const safeConfig = { ...newConfig, value: '' };
+                                localStorage.setItem('gh_stars_config', JSON.stringify(safeConfig));
+                            } else {
+                                localStorage.setItem('gh_stars_config', JSON.stringify(newConfig));
+                            }
                         }
                         break;
                     case 'README_FETCHED':
