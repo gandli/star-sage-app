@@ -136,12 +136,12 @@ class StarDataService {
     }
 
     private notify() {
-        this.updateBasicStats();
-        this.listeners.forEach(l => l({ ...this.state }));
-    }
+        const total = this.state.repos.length;
+        let translated = 0;
+        for (const repo of this.state.repos) {
+            if (repo.description_cn) translated++;
+        }
 
-    private async updateBasicStats() {
-        const { total, translated } = await db.getStats();
         this.state.stats.total = total;
         this.state.stats.translated = translated;
         this.listeners.forEach(l => l({ ...this.state }));
