@@ -97,4 +97,30 @@ describe('DatabaseService', () => {
             expect(all.map(r => r.id).sort((a, b) => a - b)).toEqual([1, 2, 3]);
         });
     });
+
+    describe('getStats', () => {
+        it('should count translated items correctly using the index', async () => {
+            const repos = [
+                { id: 1, name: 'r1', description_cn: 'Has Trans' } as Repo,
+                { id: 2, name: 'r2', description_cn: null } as Repo,
+                { id: 3, name: 'r3' } as Repo, // undefined desc_cn
+                { id: 4, name: 'r4', description_cn: 'Has Trans 2' } as Repo
+            ];
+            await db.upsertRepos(repos);
+
+            const stats = await db.getStats();
+            expect(stats.total).toBe(4);
+            expect(stats.translated).toBe(2);
+        });
+
+        it('should update stats when translation is added later', async () => {
+            await db.upsertRepos([{ id: 1, name: 'r1' } as Repo]);
+            let stats = await db.getStats();
+            expect(stats.translated).toBe(0);
+
+            await db.saveTranslation(1, 'Now Translated');
+            stats = await db.getStats();
+            expect(stats.translated).toBe(1);
+        });
+    });
 });
