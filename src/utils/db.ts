@@ -9,10 +9,12 @@ interface StarSageDB extends DBSchema {
         value: Repo & {
             sync_status?: 'pending' | 'synced';
             last_updated?: number;
+            translation_status?: number; // 0: untranslated, 1: translated
         };
         indexes: {
             'by-sync': string;
             'by-lang': string;
+            'by-translation-status': number;
         };
     };
     metadata: {
@@ -26,7 +28,7 @@ interface StarSageDB extends DBSchema {
 }
 
 const DB_NAME = 'StarsDashDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class DatabaseService {
     private dbPromise: Promise<IDBPDatabase<StarSageDB>>;
@@ -35,19 +37,36 @@ class DatabaseService {
 
     constructor() {
         this.dbPromise = openDB<StarSageDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
+            async upgrade(db, oldVersion, newVersion, transaction) {
                 // Repos Store
-                const repoStore = db.createObjectStore('repos', {
-                    keyPath: 'id'
-                });
-                repoStore.createIndex('by-sync', 'sync_status');
-                repoStore.createIndex('by-lang', 'language');
+                if (oldVersion < 1) {
+                    const repoStore = db.createObjectStore('repos', {
+                        keyPath: 'id'
+                    });
+                    repoStore.createIndex('by-sync', 'sync_status');
+                    repoStore.createIndex('by-lang', 'language');
 
-                // Metadata Store (for flags, config, etc)
-                db.createObjectStore('metadata');
+                    // Metadata Store (for flags, config, etc)
+                    db.createObjectStore('metadata');
 
-                // Translations Cache (simple fallback)
-                db.createObjectStore('translations');
+                    // Translations Cache (simple fallback)
+                    db.createObjectStore('translations');
+                }
+
+                if (oldVersion < 2) {
+                    const store = transaction.objectStore('repos');
+                    store.createIndex('by-translation-status', 'translation_status');
+
+                    // Migration: Iterate all records and set translation_status
+                    let cursor = await store.openCursor();
+                    while (cursor) {
+                        const repo = cursor.value;
+                        const status = (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0;
+                        repo.translation_status = status;
+                        await cursor.update(repo);
+                        cursor = await cursor.continue();
+                    }
+                }
             }
         });
     }
@@ -69,11 +88,14 @@ class DatabaseService {
 
             if (!cursor) {
                 // No more existing records, insert remaining
-                await store.put({
+                const newRepo = {
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
-                });
+                    last_updated: Date.now(),
+                    translation_status: (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0
+                };
+
+                await store.put(newRepo);
                 i++;
                 continue;
             }
@@ -83,12 +105,16 @@ class DatabaseService {
             if (cursorId === repo.id) {
                 // Update existing
                 const existing = cursor.value;
-                await cursor.update({
+                const merged = {
                     ...existing,
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
                     last_updated: Date.now()
-                });
+                };
+                // Calculate translation status based on the merged object
+                merged.translation_status = (merged.description_cn !== null && merged.description_cn !== undefined) ? 1 : 0;
+
+                await cursor.update(merged);
                 i++;
                 cursor = await cursor.continue();
             } else if (cursorId < repo.id) {
@@ -96,11 +122,14 @@ class DatabaseService {
                 cursor = await cursor.continue(repo.id);
             } else {
                 // cursorId > repo.id: repo is not in DB, insert new
-                await store.put({
+                const newRepo = {
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
-                });
+                    last_updated: Date.now(),
+                    translation_status: (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0
+                };
+
+                await store.put(newRepo);
                 i++;
                 // Do NOT advance cursor, check against next repo
             }
@@ -150,6 +179,7 @@ class DatabaseService {
         if (repo) {
             repo.description_cn = translation;
             repo.sync_status = 'pending'; // Mark for cloud sync
+            repo.translation_status = (translation !== null && translation !== undefined) ? 1 : 0;
             await tx.objectStore('repos').put(repo);
         }
 
@@ -169,6 +199,7 @@ class DatabaseService {
             if (repo) {
                 repo.description_cn = translation;
                 repo.sync_status = 'pending'; // Mark for cloud sync
+                repo.translation_status = (translation !== null && translation !== undefined) ? 1 : 0;
                 await tx.objectStore('repos').put(repo);
             }
 
@@ -273,17 +304,7 @@ class DatabaseService {
         const db = await this.dbPromise;
         const total = await db.count('repos');
 
-        let translated = 0;
-        const tx = db.transaction('repos', 'readonly');
-        let cursor = await tx.store.openCursor();
-
-        while (cursor) {
-            const r = cursor.value;
-            if (r.description_cn !== null && r.description_cn !== undefined) {
-                translated++;
-            }
-            cursor = await cursor.continue();
-        }
+        const translated = await db.countFromIndex('repos', 'by-translation-status', 1);
 
         return {
             total,
