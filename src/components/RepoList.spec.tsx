@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, screen } from '@testing-library/react';
 import RepoList from './RepoList';
 import type { Repo } from '../types';
 
@@ -65,5 +65,13 @@ describe('RepoList', () => {
 
         // Optimized behavior: only 1 observer created shared among all cards
         expect(observerInstances).toBe(1);
+    });
+
+    it('should have accessible external links', () => {
+        const repos = createMockRepos(1);
+        render(<RepoList repos={repos} />);
+
+        expect(screen.getAllByLabelText('Read in zread.ai').length).toBeGreaterThan(0);
+        expect(screen.getAllByLabelText('Read in DeepWiki').length).toBeGreaterThan(0);
     });
 });

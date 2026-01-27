@@ -118,30 +118,36 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
+                <nav className="flex flex-col flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
                     {!collapsed && <div className="px-6 mb-2 text-[10px] uppercase font-bold tracking-widest opacity-40 font-body">Main</div>}
-                    <div
+                    <button
+                        type="button"
                         className={cn(navItemClass, activeView === 'overview' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => setActiveView('overview')}
                         title={collapsed ? 'Data Overview' : ''}
+                        aria-label={collapsed ? "Data Overview" : undefined}
                     >
                         <LayoutDashboard size={18} className={activeView === 'overview' ? "text-blue-500" : "opacity-70"} />
                         {!collapsed && <span>Data Overview</span>}
-                    </div>
-                    <div
+                    </button>
+                    <button
+                        type="button"
                         className={cn(navItemClass, activeView === 'list' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => setActiveView('list')}
                         title={collapsed ? 'Starred List' : ''}
+                        aria-label={collapsed ? "Starred List" : undefined}
                     >
                         <ListIcon size={18} className={activeView === 'list' ? "text-blue-500" : "opacity-70"} />
                         {!collapsed && <span>Starred List</span>}
-                    </div>
+                    </button>
 
                     {!collapsed && <div className="mt-8 px-6 mb-2 text-[10px] uppercase font-bold tracking-widest opacity-40 font-body">Languages</div>}
-                    <div
+                    <button
+                        type="button"
                         className={cn(navItemClass, selectedLanguage === null && activeView === 'list' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => { setSelectedLanguage(null); setCurrentPage(1); setActiveView('list'); }}
                         title={collapsed ? 'All' : ''}
+                        aria-label={collapsed ? "All Languages" : undefined}
                     >
                         <Filter size={16} className="opacity-70" />
                         {!collapsed && (
@@ -149,23 +155,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 All <span className="ml-auto text-[10px] tabular-nums bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-md">{repos.length}</span>
                             </>
                         )}
-                    </div>
+                    </button>
 
                     {languageStats.map(lang => (
-                        <div
+                        <button
+                            type="button"
                             key={lang.name}
                             className={cn(navItemClass, "group", selectedLanguage === lang.name && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                             onClick={() => { setSelectedLanguage(lang.name); setCurrentPage(1); setActiveView('list'); }}
                             title={collapsed ? lang.name : ''}
+                            aria-label={collapsed ? lang.name : undefined}
                         >
                             <LanguageIcon name={lang.name} color={getLanguageColor(lang.name)} />
                             {!collapsed && (
                                 <>
-                                    <span className="flex-1 truncate text-sm font-medium">{lang.name}</span>
+                                    <span className="flex-1 truncate text-sm font-medium text-left">{lang.name}</span>
                                     <span className="text-[10px] tabular-nums opacity-60 font-bold bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-md">{lang.value}</span>
                                 </>
                             )}
-                        </div>
+                        </button>
                     ))}
                 </nav>
 
@@ -224,6 +232,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onClick={onOpenSettings}
                         className={`w-full h-11 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-300 ${collapsed ? 'justify-center px-0' : 'justify-center'}`}
                         title={collapsed ? 'Settings' : ''}
+                        aria-label="Settings"
                     >
                         <Settings size={14} className="opacity-70" /> {!collapsed && 'Settings'}
                     </button>
@@ -235,6 +244,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                         className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold text-xs ${collapsed ? 'justify-center px-0' : ''} md:hidden`}
                         title={collapsed ? (theme === 'light' ? 'Dark Mode' : 'Light Mode') : ''}
+                        aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                     >
                         {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                         {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
@@ -243,6 +253,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         onClick={onSignOut}
                         className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                        aria-label="Sign out"
                     >
                         <LogOut size={16} />
                         {!collapsed && <span>Sign Out</span>}
