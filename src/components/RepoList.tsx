@@ -35,7 +35,7 @@ interface RepoCardProps {
     token?: string;
 }
 
-const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
+const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
     const [translating, setTranslating] = React.useState(false);
@@ -259,6 +259,8 @@ const RepoCard: React.FC<RepoCardProps> = ({ repo, index }) => {
     );
 };
 
+export const RepoCard = React.memo(RepoCardImpl);
+
 interface RepoListProps {
     repos: Repo[];
     token?: string;
@@ -345,4 +347,4 @@ const RepoList: React.FC<RepoListProps> = ({
     );
 };
 
-export default RepoList;
+export default React.memo(RepoList);
