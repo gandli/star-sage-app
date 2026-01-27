@@ -58,53 +58,30 @@ class DatabaseService {
         const tx = db.transaction('repos', 'readwrite');
         const store = tx.objectStore('repos');
 
-        // Sort repos by ID to match cursor order
-        const sortedRepos = [...repos].sort((a, b) => a.id - b.id);
+        // Deduplicate repos by ID (Last Write Wins)
+        // This prevents race conditions if the input array has duplicates
+        const uniqueRepos = new Map<number, Repo>();
+        for (const repo of repos) {
+            uniqueRepos.set(repo.id, repo);
+        }
 
-        let i = 0;
-        let cursor = await store.openCursor();
-
-        while (i < sortedRepos.length) {
-            const repo = sortedRepos[i];
-
-            if (!cursor) {
-                // No more existing records, insert remaining
+        await Promise.all(Array.from(uniqueRepos.values()).map(async (repo) => {
+            const existing = await store.get(repo.id);
+            if (existing) {
                 await store.put({
-                    ...repo,
-                    sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
-                });
-                i++;
-                continue;
-            }
-
-            const cursorId = cursor.key as number;
-
-            if (cursorId === repo.id) {
-                // Update existing
-                const existing = cursor.value;
-                await cursor.update({
                     ...existing,
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
                     last_updated: Date.now()
                 });
-                i++;
-                cursor = await cursor.continue();
-            } else if (cursorId < repo.id) {
-                // Cursor is behind, advance to repo.id
-                cursor = await cursor.continue(repo.id);
             } else {
-                // cursorId > repo.id: repo is not in DB, insert new
                 await store.put({
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
                     last_updated: Date.now()
                 });
-                i++;
-                // Do NOT advance cursor, check against next repo
             }
-        }
+        }));
 
         await tx.done;
     }
