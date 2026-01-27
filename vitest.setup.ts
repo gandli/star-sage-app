@@ -74,3 +74,17 @@ global.IdleDeadline = class {
     get didTimeout() { return false; }
     timeRemaining() { return 50; }
 } as any;
+
+// Mock ResizeObserver
+class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+global.ResizeObserver = ResizeObserverMock;
+window.ResizeObserver = ResizeObserverMock;
+
+// Mock AutoSizer to provide dimensions in JSDOM
+vi.mock('react-virtualized-auto-sizer', () => ({
+    AutoSizer: ({ children }: any) => children({ width: 1200, height: 800 })
+}));

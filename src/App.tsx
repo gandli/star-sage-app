@@ -20,6 +20,7 @@ import { useAppConfig } from './hooks/useAppConfig';
 import { useAppState } from './hooks/useAppState';
 import { useSettingsSync } from './hooks/useSettingsSync';
 import { autoTranslator } from './services/AutoTranslator';
+import { cn } from './utils/theme';
 
 const App: React.FC = () => {
   // --- Auth & Config State ---
@@ -244,7 +245,7 @@ const App: React.FC = () => {
           onOpenMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div ref={scrollContainerRef} className={cn("flex-1 p-4 custom-scrollbar", activeView === 'list' ? "overflow-hidden" : "overflow-y-auto")}>
           <MainContent
             activeView={activeView}
             loading={loading}
@@ -256,7 +257,7 @@ const App: React.FC = () => {
             starTrends={repoFilter.starTrends}
             hotTopics={repoFilter.hotTopics}
             syncProgress={syncProgress}
-            paginatedRepos={repoFilter.paginatedRepos}
+            repos={repoFilter.sortedRepos}
             config={config}
           />
         </div>

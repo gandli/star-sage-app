@@ -18,7 +18,7 @@ interface MainContentProps {
     starTrends: any[];
     hotTopics: any[];
     syncProgress: SyncProgress | null;
-    paginatedRepos: Repo[];
+    repos: Repo[];
     config: Config;
 }
 
@@ -33,7 +33,7 @@ export const MainContent: React.FC<MainContentProps> = ({
     starTrends,
     hotTopics,
     syncProgress,
-    paginatedRepos,
+    repos,
     config
 }) => {
     return (
@@ -91,9 +91,10 @@ export const MainContent: React.FC<MainContentProps> = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    className="h-full"
                 >
                     <RepoList
-                        repos={paginatedRepos}
+                        repos={repos}
                         token={config.type === 'token' ? config.value : undefined}
                         loading={loading}
                     />

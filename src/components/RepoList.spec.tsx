@@ -18,17 +18,16 @@ describe('RepoList', () => {
     });
 
     // Mock ResizeObserver
-    const mockResizeObserver = vi.fn();
-    mockResizeObserver.mockImplementation(() => ({
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-    }));
+    class MockResizeObserver {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+    }
 
     beforeEach(() => {
         observerInstances = 0;
         window.IntersectionObserver = mockIntersectionObserver;
-        window.ResizeObserver = mockResizeObserver;
+        window.ResizeObserver = MockResizeObserver;
     });
 
     afterEach(() => {

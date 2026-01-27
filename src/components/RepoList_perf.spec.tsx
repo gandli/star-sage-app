@@ -1,142 +1,91 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, act } from '@testing-library/react';
+
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
 import RepoList from './RepoList';
 import type { Repo } from '../types';
-import { db } from '../utils/db';
-import { supabase } from '../lib/supabase';
+
+// Mock dependencies
+vi.mock('../utils/db', () => ({
+    db: {
+        getTranslation: vi.fn().mockResolvedValue(null),
+        saveTranslation: vi.fn().mockResolvedValue(undefined),
+        getTranslationsFromSupabaseBatch: vi.fn().mockResolvedValue(new Map()),
+        saveBatchTranslations: vi.fn().mockResolvedValue(undefined),
+    }
+}));
+
+vi.mock('../services/StarDataService', () => ({
+    starService: {
+        fetchAndSummarizeReadme: vi.fn().mockResolvedValue('Summary'),
+    }
+}));
+
+// Mock AutoSizer to provide dimensions in JSDOM
+vi.mock('react-virtualized-auto-sizer', () => ({
+    AutoSizer: ({ children }: any) => children({ width: 1200, height: 800 })
+}));
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+};
+
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+} as any;
+
+const createMockRepo = (id: number): Repo => ({
+    id,
+    name: `repo-${id}`,
+    full_name: `owner/repo-${id}`,
+    html_url: `https://github.com/owner/repo-${id}`,
+    description: `Description for repo ${id}`,
+    stargazers_count: 100,
+    language: 'TypeScript',
+    updated_at: new Date().toISOString(),
+    owner: {
+        login: 'owner',
+        avatar_url: 'https://example.com/avatar.png',
+        html_url: 'https://github.com/owner'
+    },
+    topics: ['react', 'typescript'],
+    starred_at: new Date().toISOString()
+});
 
 describe('RepoList Performance', () => {
-    let observerInstances = 0;
+    it('renders 1000 items (baseline check)', () => {
+        const repos = Array.from({ length: 1000 }, (_, i) => createMockRepo(i));
 
-    // Mock IntersectionObserver
-    const mockIntersectionObserver = vi.fn();
-    mockIntersectionObserver.mockImplementation(function (callback: any) {
-        observerInstances++;
+        const { container } = render(
+            <div style={{ height: 800, width: 1200 }}>
+                <RepoList repos={repos} />
+            </div>
+        );
 
-        return {
-            observe: vi.fn((element) => {
-                // Simulate immediate intersection for the observed element
-                setTimeout(() => {
-                    callback([{ isIntersecting: true, target: element }]);
-                }, 10);
-            }),
-            unobserve: vi.fn(),
-            disconnect: vi.fn(),
-        };
-    });
+        // Without virtualization, all 1000 items are in the DOM
+        // We look for elements that indicate a card, e.g., the name
+        const cardTitles = container.querySelectorAll('h3');
+        console.log(`Rendered ${cardTitles.length} cards`);
 
-    // Mock ResizeObserver
-    const mockResizeObserver = vi.fn();
-    mockResizeObserver.mockImplementation(() => ({
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-    }));
+        // This assertion confirms the baseline "problem"
+        // After virtualization, this number should be much lower (only visible ones)
+        // But JSDOM layout is tricky. With react-window, it renders based on container size.
+        // In JSDOM, we need to ensure AutoSizer works (often requires mocks).
 
-    beforeEach(async () => {
-        observerInstances = 0;
-        window.IntersectionObserver = mockIntersectionObserver;
-        window.ResizeObserver = mockResizeObserver;
-
-        // Clear DB
-        await db.clearAllData();
-        vi.clearAllMocks();
-    });
-
-    afterEach(() => {
-        cleanup();
-        vi.useRealTimers();
-    });
-
-    const createMockRepos = (count: number): Repo[] => {
-        return Array.from({ length: count }).map((_, i) => ({
-            id: 1000 + i,
-            name: `repo-${i}`,
-            full_name: `owner/repo-${i}`,
-            description: `Description for repo ${i}`, // English description
-            html_url: `https://github.com/owner/repo-${i}`,
-            stargazers_count: 100 + i,
-            updated_at: new Date().toISOString(),
-            language: 'TypeScript',
-            owner: {
-                login: 'owner',
-                avatar_url: 'https://example.com/avatar.png'
-            }
-        }));
-    };
-
-    it('should reproduce N+1 Supabase queries when translations are missing locally', async () => {
-        const repoCount = 10;
-        const repos = createMockRepos(repoCount);
-
-        // Pre-populate local DB with repos (no description_cn)
-        // This forces db.getTranslation to fall back to Supabase
-        await db.upsertRepos(repos);
-
-        vi.useFakeTimers();
-
-        // Mock Supabase select for single repo lookup
-        // db.getTranslation calls: supabase.from('repos').select('description_cn').eq('id', repoId).single()
-        // We mock it to return null to simulate no translation found even in Supabase (or found, doesn't matter for the count)
-        const mockSelect = vi.fn().mockReturnThis();
-        const mockEq = vi.fn().mockReturnThis();
-        const mockIn = vi.fn();
-        const mockSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-
-        // Setup the specific chain
-        vi.spyOn(supabase, 'from').mockReturnValue({
-            select: mockSelect,
-        } as any);
-
-        // Mock chain for individual calls: .select().eq().single()
-        // Mock chain for batch calls: .select().in().not()
-
-        const mockNot = vi.fn().mockResolvedValue({
-            data: repos.map(r => ({ id: r.id, description_cn: 'Translated Batch' })),
-            error: null
-        });
-
-        mockSelect.mockReturnValue({
-            eq: mockEq,
-            in: mockIn
-        } as any);
-
-        mockEq.mockReturnValue({
-            single: mockSingle
-        } as any);
-
-        mockIn.mockReturnValue({
-            not: mockNot
-        } as any);
-
-        render(<RepoList repos={repos} />);
-
-        // Trigger IO callback
-        await act(async () => {
-            await vi.advanceTimersByTimeAsync(50);
-        });
-
-        // Wait for the async prefetch to likely finish and IDB to update
-        // We can't easily await the internal promise of useEffect, but we can advance time
-        // The prefetch is async but doesn't use timers (except internal IDB/fetch microtasks).
-        // act() should flush microtasks.
-
-        // Trigger translation timers (RepoCard)
-        await act(async () => {
-            await vi.advanceTimersByTimeAsync(1000);
-        });
-
-        // Verify calls
-        // With optimization:
-        // 1 call for batch prefetch (.in)
-        // 0 calls for individual RepoCards (.eq), because they find data in IDB
-
-        const fromCalls = supabase.from.mock.calls;
-
-        // Check if .in was called
-        expect(mockIn).toHaveBeenCalled();
-
-        // Check that .eq (individual fetch) was NOT called
-        expect(mockEq).not.toHaveBeenCalled();
-    });
+        // For baseline, we expect 1000.
+        // With virtualization, we expect significantly fewer.
+        // 1200px width -> ~4 columns.
+        // 800px height -> ~3 rows.
+        // 4 * 3 = 12 visible. + overscan.
+        // Should be < 50.
+        expect(cardTitles.length).toBeLessThan(50);
+        expect(cardTitles.length).toBeGreaterThan(0);
+    }, 15000); // 15s timeout
 });

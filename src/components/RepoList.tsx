@@ -1,5 +1,6 @@
 import React from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { FixedSizeGrid, areEqual } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { Star, Loader2 } from 'lucide-react';
 import { cn } from '../utils/theme';
 import { db } from '../utils/db';
@@ -33,9 +34,10 @@ interface RepoCardProps {
     repo: Repo;
     index: number;
     token?: string;
+    style?: React.CSSProperties;
 }
 
-const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
+const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index, style }) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
     const [translating, setTranslating] = React.useState(false);
@@ -160,6 +162,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
             ref={cardRef}
             delay={(index % 12) * 0.04}
             className="group relative flex flex-col content-visibility-auto overflow-hidden min-h-[180px] w-full cursor-default"
+            style={style}
         >
             <div className="relative z-10 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-4">
@@ -268,6 +271,32 @@ interface RepoListProps {
     columns?: number;
 }
 
+// Helper to calc dimensions
+const GAP = 24;
+const MIN_CARD_WIDTH = 280;
+const CARD_HEIGHT = 280; // Fixed height for card
+const ROW_HEIGHT = CARD_HEIGHT + GAP;
+
+const Cell = React.memo(({ columnIndex, rowIndex, style, data }: any) => {
+    const { repos, columnCount, token } = data;
+    const index = rowIndex * columnCount + columnIndex;
+
+    if (index >= repos.length) return null;
+
+    const repo = repos[index];
+
+    // Adjust style for gap
+    const cardStyle = {
+        ...style,
+        width: Number(style.width) - GAP,
+        height: Number(style.height) - GAP,
+    };
+
+    return (
+        <RepoCard repo={repo} index={index} token={token} style={cardStyle} />
+    );
+}, areEqual);
+
 const RepoList: React.FC<RepoListProps> = ({
     repos,
     token,
@@ -283,24 +312,10 @@ const RepoList: React.FC<RepoListProps> = ({
         );
     }
 
+    // Optimization: Batch fetch translations for displayed repos (limited to initial view)
     const missingIds = React.useMemo(() => {
         if (!repos || repos.length === 0) return [];
-        return repos
-            .filter(r =>
-                // Not translated yet
-                !r.description_cn &&
-                // Has description
-                r.description &&
-                // Not already Chinese
-                !/[\u4e00-\u9fa5]/.test(r.description)
-            )
-            .map(r => r.id);
-    }, [repos]);
-
-    // Optimization: Batch fetch translations for displayed repos
-    const missingIds = React.useMemo(() => {
-        if (!repos || repos.length === 0) return [];
-        return repos
+        return repos.slice(0, 50)
             .filter(r =>
                 // Not translated yet
                 !r.description_cn &&
@@ -336,28 +351,44 @@ const RepoList: React.FC<RepoListProps> = ({
         prefetchTranslations();
     }, [missingIds]);
 
-    return (
-        <div className="w-full pb-12 pt-2">
-            <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
-                <AnimatePresence mode="popLayout">
-                    {repos.map((repo, idx) => (
-                        <RepoCard key={repo.id} repo={repo} index={idx} token={token} />
-                    ))}
-                </AnimatePresence>
+    if (repos.length === 0 && !loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-32 opacity-20">
+                <Star size={64} className="mb-4" />
+                <p className="font-black uppercase tracking-widest text-sm">No Projects Found…</p>
             </div>
+        );
+    }
 
-            {repos.length === 0 && loading && (
-                <div className="grid gap-6 grid-cols-[repeat(auto-fill,minmax(300px,1fr))] mt-6">
-                    <LoadingSkeleton count={6} />
-                </div>
-            )}
+    return (
+        <div className="w-full h-full pb-12 pt-2">
+            <AutoSizer>
+                {({ height, width }) => {
+                    // Calculate responsive columns
+                    const columnCount = Math.floor((width + GAP) / (MIN_CARD_WIDTH + GAP));
+                    const safeColumnCount = Math.max(1, columnCount);
+                    // Distribute remaining space to columns
+                    const cardWidth = (width - (safeColumnCount - 1) * GAP) / safeColumnCount;
+                    const columnWidth = cardWidth + GAP;
+                    const rowCount = Math.ceil(repos.length / safeColumnCount);
 
-            {repos.length === 0 && !loading && (
-                <div className="flex flex-col items-center justify-center py-32 opacity-20">
-                    <Star size={64} className="mb-4" />
-                    <p className="font-black uppercase tracking-widest text-sm">No Projects Found…</p>
-                </div>
-            )}
+                    return (
+                        <FixedSizeGrid
+                            columnCount={safeColumnCount}
+                            columnWidth={columnWidth}
+                            height={height}
+                            rowCount={rowCount}
+                            rowHeight={ROW_HEIGHT}
+                            width={width}
+                            itemData={{ repos, columnCount: safeColumnCount, token }}
+                            className="custom-scrollbar"
+                            outerElementType="div"
+                        >
+                            {Cell}
+                        </FixedSizeGrid>
+                    );
+                }}
+            </AutoSizer>
         </div>
     );
 };
