@@ -153,7 +153,7 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
 
 // --- Logic: README Summarization ---
 
-async function fetchAndSummarizeReadme(repo: Repo, skipCloudSync = false): Promise<string | null> {
+async function fetchAndSummarizeReadme(repo: Repo, options: { skipCloudSync?: boolean; skipSave?: boolean } = {}): Promise<string | null> {
     try {
         const githubToken = currentConfig?.type === 'token' ? currentConfig.value : null;
         const headers: HeadersInit = { 'Accept': 'application/vnd.github.v3+json' };
@@ -177,7 +177,9 @@ async function fetchAndSummarizeReadme(repo: Repo, skipCloudSync = false): Promi
             const summary = cleanMarkdown(content);
             if (summary) {
                 const finalSummary = summary + (summary.length >= 300 ? '...' : '');
-                await db.saveReadmeSummary(repo.id, finalSummary, skipCloudSync);
+                if (!options.skipSave) {
+                    await db.saveReadmeSummary(repo.id, finalSummary, options.skipCloudSync);
+                }
                 return finalSummary;
             }
         }
@@ -221,13 +223,20 @@ async function runTranslation() {
         const readmeUpdates: Repo[] = [];
         for (let i = 0; i < reposNeedingReadme.length; i += CONCURRENCY) {
             const batch = reposNeedingReadme.slice(i, i + CONCURRENCY);
+            const batchUpdates: Repo[] = [];
             await Promise.all(batch.map(async (repo) => {
-                const summary = await fetchAndSummarizeReadme(repo, true);
+                const summary = await fetchAndSummarizeReadme(repo, { skipCloudSync: true, skipSave: true });
                 if (summary) {
                     repo.readme_summary = summary;
+                    repo.sync_status = 'pending';
                     readmeUpdates.push(repo);
+                    batchUpdates.push(repo);
                 }
             }));
+
+            if (batchUpdates.length > 0) {
+                await db.upsertRepos(batchUpdates);
+            }
         }
 
         if (readmeUpdates.length > 0) {
