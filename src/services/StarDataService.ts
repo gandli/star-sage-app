@@ -73,7 +73,11 @@ class StarDataService {
                         this.updateState({ isTranslating: payload.isTranslating });
                         break;
                     case 'DATA_CHANGED':
-                        await this.refreshFromLocal();
+                        if (payload.repoId) {
+                            await this.updateRepo(payload.repoId);
+                        } else {
+                            await this.refreshFromLocal();
+                        }
                         break;
                     case 'CONFIG_UPDATED':
                         if (this.state.config) {
@@ -275,6 +279,14 @@ class StarDataService {
                 trendStats: fullStats.trendStats
             }
         });
+    }
+
+    public async updateRepo(repoId: number) {
+        const repo = await db.getRepo(repoId);
+        if (repo) {
+            const newRepos = this.state.repos.map(r => r.id === repoId ? repo : r);
+            this.updateState({ repos: newRepos });
+        }
     }
 
     public getState() {
