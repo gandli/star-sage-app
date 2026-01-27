@@ -451,7 +451,7 @@ self.onmessage = (e) => {
                     if (payload.requestId) {
                         notify('README_FETCHED', { requestId: payload.requestId, repoId: payload.repo.id, summary });
                     }
-                    notify('DATA_CHANGED');
+                    notify('DATA_CHANGED', { repoId: payload.repo.id });
                 });
             }
             break;
