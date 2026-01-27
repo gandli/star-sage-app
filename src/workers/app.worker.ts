@@ -2,6 +2,7 @@ import { db } from '../utils/db';
 import { translateBatch, containsChinese } from '../utils/translate';
 import { cleanMarkdown } from '../utils/markdown';
 import { supabase } from '../lib/supabase';
+import { generateConfigId } from '../utils/security';
 import type { Repo, Config } from '../types';
 
 // Worker state
@@ -53,7 +54,7 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
             }
         }
 
-        const configId = `${config.type}_${config.value}`;
+        const configId = await generateConfigId(config);
         const checkpoint = await db.getSyncCheckpoint(configId);
         let page = checkpoint || startPage;
 
