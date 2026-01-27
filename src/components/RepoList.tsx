@@ -283,6 +283,20 @@ const RepoList: React.FC<RepoListProps> = ({
         );
     }
 
+    const missingIds = React.useMemo(() => {
+        if (!repos || repos.length === 0) return [];
+        return repos
+            .filter(r =>
+                // Not translated yet
+                !r.description_cn &&
+                // Has description
+                r.description &&
+                // Not already Chinese
+                !/[\u4e00-\u9fa5]/.test(r.description)
+            )
+            .map(r => r.id);
+    }, [repos]);
+
     // Optimization: Batch fetch translations for displayed repos
     const missingIds = React.useMemo(() => {
         if (!repos || repos.length === 0) return [];
