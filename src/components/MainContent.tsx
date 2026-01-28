@@ -20,6 +20,7 @@ interface MainContentProps {
     syncProgress: SyncProgress | null;
     paginatedRepos: Repo[];
     config: Config;
+    hasMore?: boolean;
 }
 
 export const MainContent: React.FC<MainContentProps> = ({
@@ -34,7 +35,8 @@ export const MainContent: React.FC<MainContentProps> = ({
     hotTopics,
     syncProgress,
     paginatedRepos,
-    config
+    config,
+    hasMore
 }) => {
     return (
         <AnimatePresence mode="wait">
@@ -96,6 +98,7 @@ export const MainContent: React.FC<MainContentProps> = ({
                         repos={paginatedRepos}
                         token={config.type === 'token' ? config.value : undefined}
                         loading={loading}
+                        hasMore={hasMore}
                     />
                 </motion.div>
             )}

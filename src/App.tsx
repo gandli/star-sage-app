@@ -258,6 +258,7 @@ const App: React.FC = () => {
             syncProgress={syncProgress}
             paginatedRepos={repoFilter.paginatedRepos}
             config={config}
+            hasMore={isMobile && currentPage < totalPages}
           />
         </div>
       </main>

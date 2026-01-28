@@ -266,12 +266,14 @@ interface RepoListProps {
     token?: string;
     loading?: boolean;
     columns?: number;
+    hasMore?: boolean;
 }
 
 const RepoList: React.FC<RepoListProps> = ({
     repos,
     token,
-    loading = false
+    loading = false,
+    hasMore = false
 }) => {
     if (loading && repos.length === 0) {
         return (
@@ -337,6 +339,7 @@ const RepoList: React.FC<RepoListProps> = ({
                         <RepoCard key={repo.id} repo={repo} index={idx} token={token} />
                     ))}
                 </AnimatePresence>
+                {hasMore && <LoadingSkeleton count={3} />}
             </div>
 
             {repos.length === 0 && loading && (
