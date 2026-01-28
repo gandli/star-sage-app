@@ -159,6 +159,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
         <GlassCard
             ref={cardRef}
             delay={(index % 12) * 0.04}
+            // content-visibility-auto (native virtualization) significantly improves rendering performance for large lists
             className="group relative flex flex-col content-visibility-auto overflow-hidden min-h-[180px] w-full cursor-default"
         >
             <div className="relative z-10 flex-1 flex flex-col">
