@@ -162,6 +162,11 @@
         text-wrap: balance;
     }
 
+    .content-visibility-auto {
+        content-visibility: auto;
+        contain-intrinsic-size: 1px 180px;
+    }
+
     /* 响应式容器 */
     .responsive-container {
         width: 100%;
