@@ -241,6 +241,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
                             rel="noopener noreferrer"
                             className="flex items-center justify-center text-[var(--text-secondary)] hover:text-blue-500 transition-all duration-300 transform hover:scale-110"
                             title="Read in zread.ai"
+                            aria-label="Read in zread.ai"
                         >
                             <ZReadLogo size={18} />
                         </a>
@@ -250,6 +251,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
                             rel="noopener noreferrer"
                             className="flex items-center justify-center text-[var(--text-secondary)] hover:text-blue-500 transition-all duration-300 transform hover:scale-110"
                             title="Read in DeepWiki"
+                            aria-label="Read in DeepWiki"
                         >
                             <DeepWikiLogo size={18} />
                         </a>

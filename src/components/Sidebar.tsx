@@ -224,6 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onClick={onOpenSettings}
                         className={`w-full h-11 flex items-center gap-2.5 text-xs font-black uppercase tracking-widest bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/10 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-300 ${collapsed ? 'justify-center px-0' : 'justify-center'}`}
                         title={collapsed ? 'Settings' : ''}
+                        aria-label="Settings"
                     >
                         <Settings size={14} className="opacity-70" /> {!collapsed && 'Settings'}
                     </button>
@@ -235,6 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                         className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all font-bold text-xs ${collapsed ? 'justify-center px-0' : ''} md:hidden`}
                         title={collapsed ? (theme === 'light' ? 'Dark Mode' : 'Light Mode') : ''}
+                        aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
                     >
                         {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                         {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
@@ -243,6 +245,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         onClick={onSignOut}
                         className={`w-full mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-all font-bold text-xs ${collapsed ? 'justify-center' : ''}`}
+                        aria-label="Sign out"
                     >
                         <LogOut size={16} />
                         {!collapsed && <span>Sign Out</span>}
