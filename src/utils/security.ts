@@ -8,3 +8,17 @@ export async function generateConfigId(config: { type: string; value: string }):
     }
     return `${config.type}_${config.value}`;
 }
+
+/**
+ * Sanitizes a URL to ensure it uses a safe protocol (http/https).
+ * Returns '#' if the URL is invalid or unsafe.
+ */
+export function sanitizeUrl(url: string | undefined | null): string {
+    if (!url) return '#';
+    try {
+        const parsed = new URL(url);
+        return ['http:', 'https:'].includes(parsed.protocol) ? url : '#';
+    } catch {
+        return '#';
+    }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateConfigId } from './security';
+import { generateConfigId, sanitizeUrl } from './security';
 
 describe('generateConfigId', () => {
     it('hashes token values', async () => {
@@ -30,5 +30,29 @@ describe('generateConfigId', () => {
         const id = await generateConfigId(config);
 
         expect(id).toBe('other_something');
+    });
+});
+
+describe('sanitizeUrl', () => {
+    it('allows valid http/https URLs', () => {
+        expect(sanitizeUrl('https://google.com')).toBe('https://google.com');
+        expect(sanitizeUrl('http://example.com/path?query=1')).toBe('http://example.com/path?query=1');
+    });
+
+    it('blocks javascript: URLs', () => {
+        expect(sanitizeUrl('javascript:alert(1)')).toBe('#');
+        expect(sanitizeUrl('JAVASCRIPT:alert(1)')).toBe('#');
+    });
+
+    it('blocks other protocols', () => {
+        expect(sanitizeUrl('ftp://example.com')).toBe('#');
+        expect(sanitizeUrl('file:///etc/passwd')).toBe('#');
+    });
+
+    it('handles invalid URLs', () => {
+        expect(sanitizeUrl('not-a-url')).toBe('#');
+        expect(sanitizeUrl('')).toBe('#');
+        expect(sanitizeUrl(null)).toBe('#');
+        expect(sanitizeUrl(undefined)).toBe('#');
     });
 });

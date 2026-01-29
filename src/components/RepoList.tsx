@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Star, Loader2 } from 'lucide-react';
 import { cn } from '../utils/theme';
 import { db } from '../utils/db';
+import { sanitizeUrl } from '../utils/security';
 import { translateText } from '../utils/translate';
 import { repoCardObserver } from '../utils/sharedObserver';
 import { starService } from '../services/StarDataService';
@@ -182,7 +183,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
                 </div>
 
                 <a
-                    href={repo.html_url}
+                    href={sanitizeUrl(repo.html_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block group-hover:text-blue-500 transition-colors duration-300 mb-2"
