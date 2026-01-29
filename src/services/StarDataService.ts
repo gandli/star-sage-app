@@ -109,6 +109,18 @@ class StarDataService {
                             this.pendingStatsRequests.delete(payload.requestId);
                         } else {
                             const { languageStats, topicStats, trendStats } = payload.stats;
+
+                            // Cache stats to prevent expensive recalculation on next startup
+                            try {
+                                localStorage.setItem('gh_stars_stats', JSON.stringify({
+                                    languageStats,
+                                    topicStats,
+                                    trendStats
+                                }));
+                            } catch (e) {
+                                console.warn('Failed to cache stats', e);
+                            }
+
                             this.updateState({
                                 stats: {
                                     ...this.state.stats,
@@ -128,6 +140,15 @@ class StarDataService {
         try {
             const total = parseInt(localStorage.getItem('gh_stars_total_count') || '0', 10);
             this.state.stats.githubTotal = total;
+
+            const cachedStats = localStorage.getItem('gh_stars_stats');
+            if (cachedStats) {
+                const parsed = JSON.parse(cachedStats);
+                this.state.stats = {
+                    ...this.state.stats,
+                    ...parsed
+                };
+            }
         } catch (e) {
             console.error('Failed to load stats from storage', e);
         }
