@@ -200,7 +200,13 @@ class StarDataService {
             // Layer 2: Supabase (Restore)
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                const username = config.resolvedUsername || config.value;
+            let username = config.resolvedUsername;
+            if (!username && config.type === 'username') {
+                username = config.value;
+            }
+
+            // 🛡️ Sentinel: Only query if we have a valid username (never use raw token)
+            if (username) {
                 const { data: cloudItems, error: cloudError } = await supabase
                     .from('user_stars')
                     .select(`repo_id, repos!inner(*)`)
@@ -216,6 +222,7 @@ class StarDataService {
                     this.updateState({ repos: restoredRepos, loading: false });
                     this.sync(config);
                     return;
+                }
                 }
             }
 

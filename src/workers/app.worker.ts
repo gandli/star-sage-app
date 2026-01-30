@@ -50,6 +50,10 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
             if (userRes.ok) {
                 const uData = await userRes.json();
                 username = uData.login;
+                // 🛡️ Sentinel: Update global config to prevent leak in runCloudSync
+                if (currentConfig) {
+                    currentConfig.resolvedUsername = username;
+                }
                 notify('CONFIG_UPDATED', { resolvedUsername: username });
             }
         }
@@ -345,6 +349,13 @@ async function runTranslation() {
 
 async function runCloudSync() {
     if (isSyncingCloud || !currentConfig) return;
+
+    // 🛡️ Sentinel: Prevent token leak if username not resolved
+    if (currentConfig.type === 'token' && !currentConfig.resolvedUsername) {
+        // console.warn('[AppWorker] Cloud sync skipped: Username not resolved for token auth');
+        return;
+    }
+
     isSyncingCloud = true;
 
     try {
