@@ -17,17 +17,30 @@ export function useProfile(user: User | null) {
         try {
             const data = await queryCoalescer.coalesce(`profile:${user.id}`, async () => {
                 const { data, error } = await supabase
-                    .from('profiles')
+                    .from('user_settings')
                     .select('*')
-                    .eq('id', user.id)
+                    .eq('user_id', user.id)
                     .maybeSingle();
 
                 if (error) throw error;
                 return data;
             });
 
-            // Only update if content changed to prevent downstream effect avalanche
-            setProfile(prev => JSON.stringify(prev) === JSON.stringify(data) ? prev : data);
+            // Map user_settings and user metadata to Profile interface
+            const mappedProfile: Profile = {
+                id: user.id,
+                username: user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.email?.split('@')[0] || null,
+                full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+                avatar_url: user.user_metadata?.avatar_url || null,
+
+                config_type: data?.github_token ? 'token' : (data?.github_username ? 'username' : null),
+                config_value: data?.github_token || data?.github_username || null,
+                resolved_username: data?.github_token ? data?.github_username : null,
+                settings: data?.preferences || {}
+            };
+
+            // Only update if content changed
+            setProfile(prev => JSON.stringify(prev) === JSON.stringify(mappedProfile) ? prev : mappedProfile);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -42,31 +55,31 @@ export function useProfile(user: User | null) {
     const updateCloudSettings = async (settings: Record<string, any>) => {
         if (!user) return;
         try {
-            // Get current profile to merge settings
-            const { data: currentProfile } = await supabase
-                .from('profiles')
-                .select('settings')
-                .eq('id', user.id)
+            // Get current preferences to merge
+            const { data: currentSettings } = await supabase
+                .from('user_settings')
+                .select('preferences')
+                .eq('user_id', user.id)
                 .maybeSingle();
 
             const mergedSettings = {
-                ...(currentProfile?.settings || {}),
+                ...(currentSettings?.preferences || {}),
                 ...settings
             };
 
             // Check if settings actually changed
-            const settingsChanged = JSON.stringify(currentProfile?.settings) !== JSON.stringify(mergedSettings);
+            const settingsChanged = JSON.stringify(currentSettings?.preferences) !== JSON.stringify(mergedSettings);
             if (!settingsChanged) return;
 
             console.log('[useProfile] Settings changed, updating cloud...', mergedSettings);
 
             const { error } = await supabase
-                .from('profiles')
+                .from('user_settings')
                 .upsert({
-                    id: user.id,
-                    settings: mergedSettings,
+                    user_id: user.id,
+                    preferences: mergedSettings,
                     updated_at: new Date().toISOString(),
-                });
+                }, { onConflict: 'user_id' });
 
             if (error) throw error;
 
@@ -84,15 +97,22 @@ export function useProfile(user: User | null) {
     const updateCloudConfig = async (config: Config) => {
         if (!user) return;
         try {
+            const payload: any = {
+                user_id: user.id,
+                updated_at: new Date().toISOString(),
+            };
+
+            if (config.type === 'token') {
+                payload.github_token = config.value;
+                payload.github_username = config.resolvedUsername;
+            } else {
+                payload.github_token = null;
+                payload.github_username = config.value;
+            }
+
             const { error } = await supabase
-                .from('profiles')
-                .upsert({
-                    id: user.id,
-                    config_type: config.type,
-                    config_value: config.value,
-                    resolved_username: config.resolvedUsername,
-                    updated_at: new Date().toISOString(),
-                });
+                .from('user_settings')
+                .upsert(payload, { onConflict: 'user_id' });
 
             if (error) throw error;
 
