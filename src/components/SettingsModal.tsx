@@ -47,6 +47,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <button
                                     onClick={onClose}
                                     className="p-3 bg-black/5 dark:bg-white/5 hover:bg-red-500 hover:text-white rounded-2xl cursor-pointer transition-all active:scale-90 shadow-sm"
+                                    aria-label="Close settings"
                                 >
                                     <X size={20} />
                                 </button>
