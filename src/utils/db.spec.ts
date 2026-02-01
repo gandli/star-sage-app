@@ -97,4 +97,28 @@ describe('DatabaseService', () => {
             expect(all.map(r => r.id).sort((a, b) => a - b)).toEqual([1, 2, 3]);
         });
     });
+
+    describe('translation_status', () => {
+        it('should automatically set translation_status on upsert', async () => {
+            await db.upsertRepos([
+                { id: 1, description_cn: 'translated' } as Repo,
+                { id: 2, description_cn: undefined } as Repo
+            ]);
+
+            const all = await db.getAllRepos() as any[];
+            const r1 = all.find(r => r.id === 1);
+            const r2 = all.find(r => r.id === 2);
+
+            expect(r1.translation_status).toBe(1);
+            expect(r2.translation_status).toBe(0);
+        });
+
+        it('should update translation_status on saveTranslation', async () => {
+            await db.upsertRepos([{ id: 1 } as Repo]);
+            await db.saveTranslation(1, 'trans');
+
+            const r = await db.getRepo(1) as any;
+            expect(r.translation_status).toBe(1);
+        });
+    });
 });
