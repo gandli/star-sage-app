@@ -4,6 +4,7 @@ export interface Repo {
   full_name: string;
   description: string;
   description_cn?: string;
+  translation_status?: number;
   readme_summary?: string;
   html_url: string;
   stargazers_count: number;
