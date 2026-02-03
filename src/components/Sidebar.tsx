@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         localStorage.setItem('gh_stars_sidebar_collapsed', collapsed.toString());
     }, [collapsed]);
 
-    const navItemClass = "flex items-center gap-3 px-6 py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] font-body";
+    const navItemClass = "flex items-center gap-3 px-6 py-2 mx-2 rounded-xl cursor-pointer transition-all duration-300 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-[0.98] font-body focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-blue-500";
     const navItemActiveClass = "bg-blue-500/10 text-blue-500 font-bold shadow-sm shadow-blue-500/5";
 
     // Show progress if loading OR if it's stuck in a non-100% state
@@ -80,13 +80,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             >
                 <div className={`relative group/sidebar-header transition-all duration-300 ${collapsed ? 'h-24 flex items-center justify-center' : 'h-20 px-6 flex items-center justify-between'}`}>
-                    <div
+                    <button
                         onClick={() => {
                             setActiveView('overview');
                             setSelectedLanguage(null);
                             setCurrentPage(1);
                         }}
-                        className={cn("flex items-center gap-3 transition-all duration-300 cursor-pointer", collapsed ? "absolute inset-0 flex items-center justify-center" : "")}
+                        className={cn("flex items-center gap-3 transition-all duration-300 cursor-pointer bg-transparent border-none p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg", collapsed ? "absolute inset-0 flex items-center justify-center" : "")}
+                        type="button"
+                        aria-label="Go to overview"
                     >
                         <img
                             src={logo}
@@ -101,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 StarSage
                             </h2>
                         )}
-                    </div>
+                    </button>
 
                     <button
                         onClick={() => setCollapsed(!collapsed)}
@@ -120,28 +122,34 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <nav className="flex-1 overflow-y-auto py-2 space-y-1 custom-scrollbar">
                     {!collapsed && <div className="px-6 mb-2 text-[10px] uppercase font-bold tracking-widest opacity-40 font-body">Main</div>}
-                    <div
+                    <button
                         className={cn(navItemClass, activeView === 'overview' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => setActiveView('overview')}
                         title={collapsed ? 'Data Overview' : ''}
+                        type="button"
+                        aria-label="Data Overview"
                     >
                         <LayoutDashboard size={18} className={activeView === 'overview' ? "text-blue-500" : "opacity-70"} />
                         {!collapsed && <span>Data Overview</span>}
-                    </div>
-                    <div
+                    </button>
+                    <button
                         className={cn(navItemClass, activeView === 'list' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => setActiveView('list')}
                         title={collapsed ? 'Starred List' : ''}
+                        type="button"
+                        aria-label="Starred List"
                     >
                         <ListIcon size={18} className={activeView === 'list' ? "text-blue-500" : "opacity-70"} />
                         {!collapsed && <span>Starred List</span>}
-                    </div>
+                    </button>
 
                     {!collapsed && <div className="mt-8 px-6 mb-2 text-[10px] uppercase font-bold tracking-widest opacity-40 font-body">Languages</div>}
-                    <div
+                    <button
                         className={cn(navItemClass, selectedLanguage === null && activeView === 'list' && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                         onClick={() => { setSelectedLanguage(null); setCurrentPage(1); setActiveView('list'); }}
                         title={collapsed ? 'All' : ''}
+                        type="button"
+                        aria-label="All languages"
                     >
                         <Filter size={16} className="opacity-70" />
                         {!collapsed && (
@@ -149,14 +157,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 All <span className="ml-auto text-[10px] tabular-nums bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-md">{repos.length}</span>
                             </>
                         )}
-                    </div>
+                    </button>
 
                     {languageStats.map(lang => (
-                        <div
+                        <button
                             key={lang.name}
                             className={cn(navItemClass, "group", selectedLanguage === lang.name && navItemActiveClass, collapsed && 'justify-center px-2 mx-2')}
                             onClick={() => { setSelectedLanguage(lang.name); setCurrentPage(1); setActiveView('list'); }}
                             title={collapsed ? lang.name : ''}
+                            type="button"
+                            aria-label={`Filter by ${lang.name}`}
                         >
                             <LanguageIcon name={lang.name} color={getLanguageColor(lang.name)} />
                             {!collapsed && (
@@ -165,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <span className="text-[10px] tabular-nums opacity-60 font-bold bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-md">{lang.value}</span>
                                 </>
                             )}
-                        </div>
+                        </button>
                     ))}
                 </nav>
 

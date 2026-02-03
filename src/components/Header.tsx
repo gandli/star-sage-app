@@ -159,6 +159,7 @@ const Header: React.FC<HeaderProps> = ({
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
                                     className="h-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-wider pl-2 pr-6 cursor-pointer appearance-none"
+                                    aria-label="Sort repositories"
                                 >
                                     {sortOptions.map(opt => (
                                         <option key={opt.value} value={opt.value} className="bg-[var(--bg-main)] text-[var(--text-primary)]">
