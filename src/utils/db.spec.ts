@@ -96,5 +96,26 @@ describe('DatabaseService', () => {
             expect(all).toHaveLength(3);
             expect(all.map(r => r.id).sort((a, b) => a - b)).toEqual([1, 2, 3]);
         });
+
+        it('should maintain translation_status', async () => {
+            await db.upsertRepos([
+                { id: 1, name: 'r1', description_cn: 'translated' } as Repo,
+                { id: 2, name: 'r2', description_cn: undefined } as Repo
+            ]);
+
+            const r1 = await db.getRepo(1);
+            const r2 = await db.getRepo(2);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((r1 as any).translation_status).toBe(1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((r2 as any).translation_status).toBe(0);
+
+            // Update r2 to be translated
+            await db.upsertRepos([{ id: 2, description_cn: 'now translated' } as Repo]);
+            const r2Updated = await db.getRepo(2);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((r2Updated as any).translation_status).toBe(1);
+        });
     });
 });
