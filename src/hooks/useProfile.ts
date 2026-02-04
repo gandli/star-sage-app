@@ -89,7 +89,8 @@ export function useProfile(user: User | null) {
                 .upsert({
                     id: user.id,
                     config_type: config.type,
-                    config_value: config.value,
+                    // 🛡️ Sentinel: Never sync sensitive tokens to the cloud
+                    config_value: config.type === 'token' ? null : config.value,
                     resolved_username: config.resolvedUsername,
                     updated_at: new Date().toISOString(),
                 });
