@@ -80,7 +80,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center px-1">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+                                    <label htmlFor="settings-config-input" className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
                                         {tempConfig.type === 'username' ? 'GitHub Public User' : 'Personal Token'}
                                     </label>
                                     {tempConfig.type === 'token' && (
@@ -88,6 +88,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                     )}
                                 </div>
                                 <input
+                                    id="settings-config-input"
                                     type={tempConfig.type === 'token' ? 'password' : 'text'}
                                     className="w-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-[1.5rem] px-6 py-5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-mono text-sm placeholder:opacity-20 translate-z-0"
                                     value={tempConfig.value}

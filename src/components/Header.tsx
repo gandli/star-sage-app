@@ -136,6 +136,7 @@ const Header: React.FC<HeaderProps> = ({
                             }
                         }}
                         placeholder="Search..."
+                        aria-label="Search repositories"
                         className="flex-1 bg-transparent border-none outline-none text-sm font-['DM_Sans'] placeholder:opacity-50 min-w-0"
                     />
                     {searchQuery && (
@@ -158,6 +159,7 @@ const Header: React.FC<HeaderProps> = ({
                                 <select
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                                    aria-label="Sort repositories"
                                     className="h-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-wider pl-2 pr-6 cursor-pointer appearance-none"
                                 >
                                     {sortOptions.map(opt => (
