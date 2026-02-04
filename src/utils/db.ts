@@ -9,10 +9,12 @@ interface StarSageDB extends DBSchema {
         value: Repo & {
             sync_status?: 'pending' | 'synced';
             last_updated?: number;
+            translation_status?: 0 | 1; // 0 = untranslated, 1 = translated
         };
         indexes: {
             'by-sync': string;
             'by-lang': string;
+            'by-translation-status': number;
         };
     };
     metadata: {
@@ -26,7 +28,7 @@ interface StarSageDB extends DBSchema {
 }
 
 const DB_NAME = 'StarsDashDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class DatabaseService {
     private dbPromise: Promise<IDBPDatabase<StarSageDB>>;
@@ -35,19 +37,42 @@ class DatabaseService {
 
     constructor() {
         this.dbPromise = openDB<StarSageDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                // Repos Store
-                const repoStore = db.createObjectStore('repos', {
-                    keyPath: 'id'
-                });
-                repoStore.createIndex('by-sync', 'sync_status');
-                repoStore.createIndex('by-lang', 'language');
+            async upgrade(db, oldVersion, newVersion, transaction) {
+                if (oldVersion < 1) {
+                    // Repos Store
+                    const repoStore = db.createObjectStore('repos', {
+                        keyPath: 'id'
+                    });
+                    repoStore.createIndex('by-sync', 'sync_status');
+                    repoStore.createIndex('by-lang', 'language');
 
-                // Metadata Store (for flags, config, etc)
-                db.createObjectStore('metadata');
+                    // Metadata Store (for flags, config, etc)
+                    db.createObjectStore('metadata');
 
-                // Translations Cache (simple fallback)
-                db.createObjectStore('translations');
+                    // Translations Cache (simple fallback)
+                    db.createObjectStore('translations');
+                }
+
+                if (oldVersion < 2) {
+                    // Add index for translation status
+                    const repoStore = transaction.objectStore('repos');
+                    repoStore.createIndex('by-translation-status', 'translation_status');
+
+                    // Backfill existing records
+                    let cursor = await repoStore.openCursor();
+                    while (cursor) {
+                        const repo = cursor.value;
+                        const status = (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0;
+
+                        // Only update if status is missing or different
+                        if (repo.translation_status !== status) {
+                            repo.translation_status = status;
+                            await cursor.update(repo);
+                        }
+
+                        cursor = await cursor.continue();
+                    }
+                }
             }
         });
     }
@@ -72,7 +97,8 @@ class DatabaseService {
                 await store.put({
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
+                    last_updated: Date.now(),
+                    translation_status: (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0
                 });
                 i++;
                 continue;
@@ -83,11 +109,14 @@ class DatabaseService {
             if (cursorId === repo.id) {
                 // Update existing
                 const existing = cursor.value;
+                const effectiveDescCn = repo.description_cn !== undefined ? repo.description_cn : existing.description_cn;
+
                 await cursor.update({
                     ...existing,
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
+                    last_updated: Date.now(),
+                    translation_status: (effectiveDescCn !== null && effectiveDescCn !== undefined) ? 1 : 0
                 });
                 i++;
                 cursor = await cursor.continue();
@@ -96,10 +125,13 @@ class DatabaseService {
                 cursor = await cursor.continue(repo.id);
             } else {
                 // cursorId > repo.id: repo is not in DB, insert new
+                const status = (repo.description_cn !== null && repo.description_cn !== undefined) ? 1 : 0;
+                // console.log(`[db] Inserting ${repo.id} with status ${status}, desc_cn: ${repo.description_cn}`);
                 await store.put({
                     ...repo,
                     sync_status: repo.sync_status || 'pending',
-                    last_updated: Date.now()
+                    last_updated: Date.now(),
+                    translation_status: status
                 });
                 i++;
                 // Do NOT advance cursor, check against next repo
@@ -117,14 +149,12 @@ class DatabaseService {
     async getUntranslatedRepos(limit: number = 50): Promise<Repo[]> {
         const db = await this.dbPromise;
         const tx = db.transaction('repos', 'readonly');
+        const index = tx.store.index('by-translation-status');
         const results: Repo[] = [];
-        let cursor = await tx.store.openCursor();
+        let cursor = await index.openCursor(IDBKeyRange.only(0));
 
         while (cursor && results.length < limit) {
-            const r = cursor.value;
-            if (r.description_cn === null || r.description_cn === undefined) {
-                results.push(r);
-            }
+            results.push(cursor.value);
             cursor = await cursor.continue();
         }
         return results;
@@ -150,6 +180,7 @@ class DatabaseService {
         if (repo) {
             repo.description_cn = translation;
             repo.sync_status = 'pending'; // Mark for cloud sync
+            repo.translation_status = 1;
             await tx.objectStore('repos').put(repo);
         }
 
@@ -169,6 +200,7 @@ class DatabaseService {
             if (repo) {
                 repo.description_cn = translation;
                 repo.sync_status = 'pending'; // Mark for cloud sync
+                repo.translation_status = 1;
                 await tx.objectStore('repos').put(repo);
             }
 
