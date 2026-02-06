@@ -52,4 +52,69 @@ describe('Database Performance Benchmark', () => {
             console.log(`Improvement: ${((endOld - startOld) / (endNew - startNew)).toFixed(2)}x`);
         }
     });
+
+    it('benchmarks getUntranslatedRepos performance', async () => {
+        const TOTAL_REPOS = 5000;
+        const UNTRANSLATED_COUNT = 50;
+        const repos: Repo[] = [];
+
+        for (let i = 0; i < TOTAL_REPOS; i++) {
+            repos.push({
+                id: i,
+                name: `repo-${i}`,
+                full_name: `user/repo-${i}`,
+                html_url: `http://github.com/user/repo-${i}`,
+                stargazers_count: i,
+                updated_at: new Date().toISOString(),
+                description: `Description for repo ${i}`,
+                description_cn: i < UNTRANSLATED_COUNT ? undefined : 'Translated Description',
+                language: 'TypeScript',
+                topics: ['test'],
+                owner: { login: 'user', avatar_url: 'http://avatar' },
+                starred_at: new Date().toISOString()
+            } as Repo);
+        }
+
+        await db.upsertRepos(repos);
+
+        // Measure
+        const start = performance.now();
+        const untranslated = await db.getUntranslatedRepos(UNTRANSLATED_COUNT);
+        const end = performance.now();
+
+        expect(untranslated.length).toBe(UNTRANSLATED_COUNT);
+        console.log(`getUntranslatedRepos (5000 items, 50 untranslated) took: ${(end - start).toFixed(2)}ms`);
+    });
+
+    it('benchmarks getStats performance', async () => {
+        const TOTAL_REPOS = 5000;
+        const repos: Repo[] = [];
+
+        for (let i = 0; i < TOTAL_REPOS; i++) {
+            repos.push({
+                id: i,
+                name: `repo-${i}`,
+                full_name: `user/repo-${i}`,
+                html_url: `http://github.com/user/repo-${i}`,
+                stargazers_count: i,
+                updated_at: new Date().toISOString(),
+                description: `Description for repo ${i}`,
+                description_cn: 'Translated',
+                language: 'TypeScript',
+                topics: ['test'],
+                owner: { login: 'user', avatar_url: 'http://avatar' },
+                starred_at: new Date().toISOString()
+            } as Repo);
+        }
+
+        await db.upsertRepos(repos);
+
+        const start = performance.now();
+        const stats = await db.getStats();
+        const end = performance.now();
+
+        expect(stats.total).toBe(TOTAL_REPOS);
+        expect(stats.translated).toBe(TOTAL_REPOS);
+        console.log(`getStats (5000 items) took: ${(end - start).toFixed(2)}ms`);
+    });
 });

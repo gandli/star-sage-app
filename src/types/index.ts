@@ -18,6 +18,7 @@ export interface Repo {
   starred_at?: string;
   sync_status?: 'pending' | 'synced';
   last_updated?: number;
+  translation_status?: 0 | 1;
 }
 
 export interface Config {
