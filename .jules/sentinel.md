@@ -1,0 +1,4 @@
+## 2026-02-06 - Plaintext Token Storage in Cloud Sync
+**Vulnerability:** The `updateCloudConfig` function in `src/hooks/useProfile.ts` was `upsert`ing the user's GitHub token to the Supabase `profiles` table in plaintext. While the function appears unused in the current codebase, it poses a severe latent risk.
+**Learning:** "Dead code" or utility functions that are not currently wired up can still introduce critical vulnerabilities if they are discovered and used without vetting. Security checks must be present at the lowest level of data handling (the API/DB call), not just at the UI level.
+**Prevention:** Always implement data sanitization and redaction immediately before any external API call or database write. Use strict types to distinguish between `Sensitive<String>` and `String` if possible, or enforce redaction logic in the data access layer.
