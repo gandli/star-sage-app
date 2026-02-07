@@ -84,12 +84,15 @@ export function useProfile(user: User | null) {
     const updateCloudConfig = async (config: Config) => {
         if (!user) return;
         try {
+            // 🛡️ Sentinel: Prevent token storage
+            const configValue = config.type === 'token' ? null : config.value;
+
             const { error } = await supabase
                 .from('profiles')
                 .upsert({
                     id: user.id,
                     config_type: config.type,
-                    config_value: config.value,
+                    config_value: configValue,
                     resolved_username: config.resolvedUsername,
                     updated_at: new Date().toISOString(),
                 });
@@ -99,7 +102,7 @@ export function useProfile(user: User | null) {
             setProfile(prev => prev ? {
                 ...prev,
                 config_type: config.type,
-                config_value: config.value,
+                config_value: configValue,
                 resolved_username: config.resolvedUsername || null
             } : null);
 
