@@ -9,6 +9,56 @@ interface LanguageIconProps {
     className?: string;
 }
 
+const DEVICON_MAPPINGS: Record<string, string> = {
+    'javascript': 'javascript',
+    'typescript': 'typescript',
+    'python': 'python',
+    'java': 'java',
+    'c#': 'csharp',
+    'c++': 'cplusplus',
+    'cpp': 'cplusplus',
+    'c': 'c',
+    'go': 'go',
+    'ruby': 'ruby',
+    'php': 'php',
+    'swift': 'swift',
+    'kotlin': 'kotlin',
+    'rust': 'rust',
+    'scala': 'scala',
+    'dart': 'dart',
+    'shell': 'bash',
+    'bash': 'bash',
+    'powershell': 'powershell',
+    'html': 'html5',
+    'css': 'css3',
+    'sass': 'sass',
+    'scss': 'sass',
+    'less': 'less',
+    'vue': 'vuejs',
+    'react': 'react',
+    'angular': 'angularjs',
+    'svelte': 'svelte',
+    'dockerfile': 'docker',
+    'sql': 'mysql',
+    'pl/sql': 'oracle',
+    'vim script': 'vim',
+    'lua': 'lua',
+    'r': 'r',
+    'objective-c': 'objectivec',
+    'clojure': 'clojure',
+    'haskell': 'haskell',
+    'elixir': 'elixir',
+    'elm': 'elm',
+    'julia': 'julia',
+    'perl': 'perl',
+    'markdown': 'markdown',
+    'jupyter notebook': 'jupyter',
+    'arduino': 'arduino',
+    'nginx': 'nginx',
+    'graphql': 'graphql',
+    'solidity': 'solidity',
+};
+
 export const LanguageIcon: React.FC<LanguageIconProps> = ({ name, color, size = 16, className = '' }) => {
     const finalColor = color || getLanguageColor(name);
     const iconProps = { size, style: { color: finalColor }, className: `shrink-0 transition-transform group-hover:scale-110 ${className}` };
@@ -17,64 +67,14 @@ export const LanguageIcon: React.FC<LanguageIconProps> = ({ name, color, size = 
     const lowerName = name.toLowerCase();
     let deviconClass = '';
 
-    const mappings: Record<string, string> = {
-        'javascript': 'javascript',
-        'typescript': 'typescript',
-        'python': 'python',
-        'java': 'java',
-        'c#': 'csharp',
-        'c++': 'cplusplus',
-        'cpp': 'cplusplus',
-        'c': 'c',
-        'go': 'go',
-        'ruby': 'ruby',
-        'php': 'php',
-        'swift': 'swift',
-        'kotlin': 'kotlin',
-        'rust': 'rust',
-        'scala': 'scala',
-        'dart': 'dart',
-        'shell': 'bash',
-        'bash': 'bash',
-        'powershell': 'powershell',
-        'html': 'html5',
-        'css': 'css3',
-        'sass': 'sass',
-        'scss': 'sass',
-        'less': 'less',
-        'vue': 'vuejs',
-        'react': 'react',
-        'angular': 'angularjs',
-        'svelte': 'svelte',
-        'dockerfile': 'docker',
-        'sql': 'mysql',
-        'pl/sql': 'oracle',
-        'vim script': 'vim',
-        'lua': 'lua',
-        'r': 'r',
-        'objective-c': 'objectivec',
-        'clojure': 'clojure',
-        'haskell': 'haskell',
-        'elixir': 'elixir',
-        'elm': 'elm',
-        'julia': 'julia',
-        'perl': 'perl',
-        'markdown': 'markdown',
-        'jupyter notebook': 'jupyter',
-        'arduino': 'arduino',
-        'nginx': 'nginx',
-        'graphql': 'graphql',
-        'solidity': 'solidity',
-    };
-
     // Direct lookup or fuzzy match
-    if (mappings[lowerName]) {
-        deviconClass = mappings[lowerName];
+    if (DEVICON_MAPPINGS[lowerName]) {
+        deviconClass = DEVICON_MAPPINGS[lowerName];
     } else {
         // Try to find a partial match
-        for (const key in mappings) {
+        for (const key in DEVICON_MAPPINGS) {
             if (lowerName.includes(key)) {
-                deviconClass = mappings[key];
+                deviconClass = DEVICON_MAPPINGS[key];
                 break;
             }
         }
