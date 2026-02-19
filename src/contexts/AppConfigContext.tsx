@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useAppConfig } from '../hooks/useAppConfig';
-import { useSettingsSync } from '../hooks/useSettingsSync';
 import { useAuthContext } from './AuthContext';
 import type { Config } from '../types';
 
@@ -15,7 +14,7 @@ interface AppConfigContextValue {
 const AppConfigContext = createContext<AppConfigContextValue | null>(null);
 
 export function AppConfigProvider({ children }: { children: ReactNode }) {
-  const { session, user, profile, profileLoading, updateCloudSettings } = useAuthContext();
+  const { session } = useAuthContext();
   const { config, setConfig, saveConfig } = useAppConfig(session);
   const [tempConfig, setTempConfig] = useState(config);
 

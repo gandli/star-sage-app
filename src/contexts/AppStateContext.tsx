@@ -1,4 +1,4 @@
-import React, { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useAppState } from '../hooks/useAppState';
 
 type AppStateValue = ReturnType<typeof useAppState>;

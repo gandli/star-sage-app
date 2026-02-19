@@ -1,4 +1,4 @@
-import React, { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useGithubSync } from '../hooks/useGithubSync';
 import { useAppConfigContext } from './AppConfigContext';
 import type { Repo, SyncProgress, Config } from '../types';
