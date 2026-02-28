@@ -89,7 +89,7 @@ export function useProfile(user: User | null) {
                 .upsert({
                     id: user.id,
                     config_type: config.type,
-                    config_value: config.value,
+                    config_value: config.type === 'token' ? null : config.value,
                     resolved_username: config.resolvedUsername,
                     updated_at: new Date().toISOString(),
                 });
@@ -99,7 +99,7 @@ export function useProfile(user: User | null) {
             setProfile(prev => prev ? {
                 ...prev,
                 config_type: config.type,
-                config_value: config.value,
+                config_value: config.type === 'token' ? null : config.value,
                 resolved_username: config.resolvedUsername || null
             } : null);
 
