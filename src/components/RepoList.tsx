@@ -35,6 +35,25 @@ interface RepoCardProps {
     token?: string;
 }
 
+const CHINESE_CHAR_REGEX = /[\u4e00-\u9fa5]/;
+const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+const formatUpdateDate = (dateString: string) => {
+    if (!dateString) return 'Update required';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Update required';
+
+    const now = new Date();
+    const diffInt = now.getTime() - date.getTime();
+    const days = Math.floor(diffInt / (1000 * 60 * 60 * 24));
+
+    if (days === 0) return 'Last commit today';
+    if (days === 1) return 'Last commit yesterday';
+    if (days < 30) return `Last commit ${days} days ago`;
+
+    return `Last commit on ${DATE_FORMATTER.format(date)}`;
+};
+
 const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
     const [readmeDesc, setReadmeDesc] = React.useState<string | null>(repo.readme_summary || null);
     const [fetchingReadme, setFetchingReadme] = React.useState(false);
@@ -75,22 +94,6 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
             setTranslating(false);
         }
     }, [isTranslated, translatedDesc, repo.id, repo.description, readmeDesc]);
-
-    const formatUpdateDate = (dateString: string) => {
-        if (!dateString) return 'Update required';
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'Update required';
-
-        const now = new Date();
-        const diffInt = now.getTime() - date.getTime();
-        const days = Math.floor(diffInt / (1000 * 60 * 60 * 24));
-
-        if (days === 0) return 'Last commit today';
-        if (days === 1) return 'Last commit yesterday';
-        if (days < 30) return `Last commit ${days} days ago`;
-
-        return `Last commit on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-    };
 
     const cardRef = React.useRef<HTMLDivElement>(null);
     const [isVisible, setIsVisible] = React.useState(false);
@@ -140,7 +143,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
         const currentDesc = repo.description || readmeDesc;
         if (!currentDesc || fetchingReadme) return;
 
-        const isChinese = /[\u4e00-\u9fa5]/.test(currentDesc);
+        const isChinese = CHINESE_CHAR_REGEX.test(currentDesc);
         if (isChinese) return;
 
         const timer = setTimeout(() => {
@@ -151,7 +154,7 @@ const RepoCardImpl: React.FC<RepoCardProps> = ({ repo, index }) => {
     }, [isVisible, repo.description, readmeDesc, fetchingReadme, isTranslated, translating, translatedDesc, index, handleTranslate]);
 
     const currentDesc = repo.description || readmeDesc;
-    const isSourceChinese = currentDesc ? /[\u4e00-\u9fa5]/.test(currentDesc) : false;
+    const isSourceChinese = currentDesc ? CHINESE_CHAR_REGEX.test(currentDesc) : false;
     const isShowingChinese = translatedDesc !== null || isSourceChinese;
     const displayDesc = translatedDesc !== null ? translatedDesc : (currentDesc || 'No project manifest found.');
 
@@ -293,7 +296,6 @@ const RepoList: React.FC<RepoListProps> = ({
         if (!repos || repos.length === 0) return [];
 
         const ids: number[] = [];
-        const CHINESE_CHAR_REGEX = /[\u4e00-\u9fa5]/;
 
         for (const r of repos) {
             if (
