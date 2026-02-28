@@ -4,6 +4,8 @@ class AutoTranslator {
     private isProcessing = false;
     private enabled = false;
     private listeners: Set<(isTranslating: boolean) => void> = new Set();
+    private userId: string | null = null;
+    private githubUser: string | null = null;
 
     constructor() {
         // Subscribe to starService to sync local isProcessing state
@@ -16,14 +18,14 @@ class AutoTranslator {
     }
 
     public start() {
+        if (!this.userId || !this.githubUser) return;
         this.enabled = true;
         starService.triggerTranslation();
     }
 
     public stop() {
         this.enabled = false;
-        // Global stop is handled by starService/Worker INIT/STOP if needed
-        // but for now we just stop triggering
+        starService.getWorker()?.postMessage({ type: 'STOP' });
     }
 
     public trigger() {
@@ -41,9 +43,15 @@ class AutoTranslator {
         this.listeners.forEach(listener => listener(this.isProcessing));
     }
 
-    // Dummy for compatibility
-    public setAccount(_userId: string | null, _githubUser: string | null) {
-        this.start();
+    public setAccount(userId: string | null, githubUser: string | null) {
+        this.userId = userId;
+        this.githubUser = githubUser;
+
+        if (this.userId && this.githubUser) {
+            this.start();
+        } else {
+            this.stop();
+        }
     }
 }
 
