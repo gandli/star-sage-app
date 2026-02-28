@@ -42,7 +42,7 @@ async function runGitHubSync(config: Config, startPage: number = 1) {
             headers['Authorization'] = `Bearer ${config.value}`;
         }
 
-        let username = config.resolvedUsername || config.value;
+        let username = config.type === 'username' ? config.value : config.resolvedUsername;
 
         // Resolve username if needed
         if (config.type === 'token' && !config.resolvedUsername) {
@@ -354,7 +354,14 @@ async function runCloudSync() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const username = currentConfig.resolvedUsername || currentConfig.value;
+        const username = currentConfig.type === 'username'
+            ? currentConfig.value
+            : currentConfig.resolvedUsername;
+
+        if (!username) {
+            console.warn('[AppWorker] Cloud sync skipped: Missing username for token configuration');
+            return;
+        }
 
         // Upsert repos
         const { error: reposError } = await supabase.from('repos').upsert(pending.map(r => ({
